@@ -2,191 +2,95 @@ from typing import Dict, List, Any, Optional, Union
 import pandas as pd
 
 
-class WSBase:
-    """
-    Универсальный базовый класс для торговых стратегий.
-    Поддерживает работу с множеством инструментов, датафреймов и позиций.
-    """
-    def __init__(
-        self,
-        symbols: Union[str, List[str]] = "IMOEXF",
-        timeframes: Union[str, List[str]] = "1m",
-        initial_positions: Union[int, Dict[str, int]] = 0,
-        parameters: Dict[str, Any] = None
-    ):
-        """
-        Инициализация стратегии.
-        
-        Args:
-            symbols: Символ(ы) для торговли
-            timeframes: Таймфрейм(ы) для анализа
-            initial_positions: Начальные позиции
-            parameters: Параметры стратегии
-        """
-        # Конвертируем в списки для унификации
-        self.symbols = [symbols] if isinstance(symbols, str) else symbols
-        self.timeframes = [timeframes] if isinstance(timeframes, str) else timeframes
-        
-        # Инициализируем позиции
-        self.positions = self._init_positions(initial_positions)
-        self.target_positions = self.positions.copy()
-        
-        # Параметры стратегии
-        self.parameters = parameters or {}
-        
-        # Хранилище данных и состояний
-        self.dataframes: Dict[str, pd.DataFrame] = {}
-        self.indicators: Dict[str, Dict[str, Any]] = {}
-        self.states: Dict[str, Any] = {}
-        
-        # Средние цены для каждого инструмента
-        self.middle_prices = {symbol: None for symbol in self.symbols}
 
-    def _init_positions(self, initial_positions: Union[int, Dict[str, int]]) -> Dict[str, int]:
-        """Инициализирует словарь позиций."""
-        if isinstance(initial_positions, dict):
-            return initial_positions.copy()
-        else:
-            return {symbol: initial_positions for symbol in self.symbols}
-    
-    def update_dataframe(self, symbol: str, timeframe: str, df: pd.DataFrame):
-        """Обновляет датафрейм для конкретного символа и таймфрейма."""
-        key = f"{symbol}_{timeframe}"
-        self.dataframes[key] = df.copy()
-        
-    def get_dataframe(self, symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
-        """Возвращает датафрейм для символа и таймфрейма."""
-        key = f"{symbol}_{timeframe}"
-        return self.dataframes.get(key)
-    
-    def update_position(self, symbol: str, position: int):
-        """Обновляет позицию для символа."""
-        if symbol in self.positions:
-            self.positions[symbol] = position
-    
-    def update_middle_price(self, symbol: str, middle_price: float):
-        """Обновляет среднюю цену для символа."""
-        if symbol in self.middle_prices:
-            self.middle_prices[symbol] = middle_price
-    
-    def preprocessing(
-        self, 
-        df: pd.DataFrame, 
-        symbol: str, 
-        timeframe: str,
-        position: Optional[int] = None,
-        middle_price: Optional[float] = None
-    ) -> pd.DataFrame:
+class WSBase:
+    def __init__(self,symbols:List[str],timeframes:List[str|int],positions:Dict[str,int],middle_price:Dict[str,float],parameters:Dict[str,Any]):
         """
-        Предобработка данных. Может быть переопределена в дочерних классах.
+        symbols = ['IMOEXF','MMZ5'],
+        timeframes = ['5m','1H'],
+        positions = {
+            'IMOEXF':1,
+            'MMZ5':-1,
+        },
+        middle_price = {
+            'IMOEXF':2565.0,
+            'MMZ5':2612.0,
+        },
+        parameters = {
+            'period_bb':20,
+            'mult_bb':2,
+            'kind_bb':'close'
+        }
         """
-        if position is not None:
-            self.update_position(symbol, position)
-        if middle_price is not None:
-            self.update_middle_price(symbol, middle_price)
-            
-        return df.copy()
-    
-    def calculate_indicators(self, symbol: str, timeframe: str):
-        """
-        Расчет индикаторов. Должен быть реализован в дочерних классах.
-        """
-        key = f"{symbol}_{timeframe}"
-        df = self.get_dataframe(symbol, timeframe)
-        
-        if df is not None:
-            # Пример структуры для хранения индикаторов
-            self.indicators[key] = {
-                # Здесь будут рассчитываться индикаторы
-                # Например: 'sma': df['close'].rolling(20).mean()
+        self.symbols = symbols
+        self.timeframes = timeframes
+        self.positions = positions.copy()
+        self.middle_price = middle_price
+        self.parameters = parameters
+        self.need_pos = positions.copy()
+        self.last_dfs = {
+            timeframe:{symbol: pd.DataFrame() for symbol in symbols}
+                for timeframe in timeframes
             }
-    
-    def generate_signals(self, symbol: str) -> Dict[str, Any]:
+    def update_poss_mps(self,poss):
         """
-        Генерация торговых сигналов. Должен быть реализован в дочерних классах.
-        
-        Returns:
-            Словарь с сигналами и целевыми позициями
-        """
-        # Базовая реализация - возвращает текущую позицию
-        return {
-            'symbol': symbol,
-            'target_position': self.positions.get(symbol, 0),
-            'signals': {},
-            'timestamp': pd.Timestamp.now()
+        poss = {
+            's1':{
+                'pos':2,
+                'mp':105.5
+            },
+            's2':{
+                'pos':-1,
+                'mp':103.5
+            }
         }
-    
-    def portfolio_management(self, signals: Dict[str, Dict[str, Any]]) -> Dict[str, int]:
         """
-        Управление портфелем. Может быть переопределено для арбитражных стратегий.
-        
-        Args:
-            signals: Словарь сигналов для всех символов
-            
-        Returns:
-            Словарь целевых позиций для всех символов
+        for s in poss:
+            self.positions[s] = poss[s]['pos']
+            self.middle_price[s] = poss[s]['mp']
+
+    def preprocessing(self,dfs,poss):
         """
-        target_positions = {}
-        
-        for symbol, signal_data in signals.items():
-            target_positions[symbol] = signal_data['target_position']
-            
-        return target_positions
-    
-    def risk_management(self, current_positions: Dict[str, int]) -> Dict[str, int]:
-        """
-        Управление рисками. Может быть переопределено в дочерних классах.
-        """
-        # Базовая реализация - просто возвращает текущие позиции
-        return current_positions.copy()
-    
-    def __call__(self, **kwargs) -> Dict[str, Any]:
-        """
-        Основной метод выполнения стратегии.
-        
-        Returns:
-            Словарь с целевыми позициями и дополнительной информацией
-        """
-        # 1. Сбор сигналов по всем символам
-        all_signals = {}
-        for symbol in self.symbols:
-            signal = self.generate_signals(symbol)
-            all_signals[symbol] = signal
-        
-        # 2. Управление портфелем
-        target_positions = self.portfolio_management(all_signals)
-        
-        # 3. Управление рисками
-        final_positions = self.risk_management(target_positions)
-        
-        # 4. Обновление целевых позиций
-        self.target_positions.update(final_positions)
-        
-        return {
-            'target_positions': final_positions,
-            'signals': all_signals,
-            'current_positions': self.positions.copy(),
-            'middle_prices': self.middle_prices.copy()
+        Получаем такие данные:
+        dfs = {
+            'tf1': {
+                's1':df_s1,
+                's2':df_s2
+            },
+            'tf2': {
+                's1':df_s1,
+                's2':df_s2
+            }
         }
-    
-    def get_state(self) -> Dict[str, Any]:
-        """Возвращает текущее состояние стратегии."""
-        return {
-            'symbols': self.symbols.copy(),
-            'timeframes': self.timeframes.copy(),
-            'positions': self.positions.copy(),
-            'target_positions': self.target_positions.copy(),
-            'middle_prices': self.middle_prices.copy(),
-            'parameters': self.parameters.copy(),
-            'states': self.states.copy()
+        poss = {
+            's1':{
+                'pos':2,
+                'mp':105.5
+            },
+            's2':{
+                'pos':-1,
+                'mp':103.5
+            }
         }
+        Здесь необходимо произвести обработку в соответсвии со стратегией
+        self.update_poss_mps(poss)
+        for s in dfs['tf1']:
+            df = dfs['tf1'][s]
+            df = add_bollinger(df,**parameters)
+            self.last_dfs['tf1'][s] = df
+        """
+        
+        return self.last_dfs
+
+    def __call__(self, *args, **kwds):
+        """
+        Метод должен обновить требуемые позиции, если это необходимо.
+        Здесь прописывается логика по которой обновляются позиции.
+        Пример:
+        row_imoexf5 = self.last_dfs['5m']['IMOEXF'].iloc[-1]
+        row_imoexf60 = self.last_dfs['1H']['IMOEXF'].iloc[-1]
+        if row_imoexf60['close'] < row_imoexf60['bbd'] and row_imoexf5['close'] < row_imoexf5['bbd']:
+            self.need_pos['IMOEXF'] = 1
+        """
+        return self.need_pos
     
-    def set_state(self, state: Dict[str, Any]):
-        """Восстанавливает состояние стратегии."""
-        self.symbols = state.get('symbols', self.symbols)
-        self.timeframes = state.get('timeframes', self.timeframes)
-        self.positions = state.get('positions', self.positions)
-        self.target_positions = state.get('target_positions', self.target_positions)
-        self.middle_prices = state.get('middle_prices', self.middle_prices)
-        self.parameters = state.get('parameters', self.parameters)
-        self.states = state.get('states', self.states)

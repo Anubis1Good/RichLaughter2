@@ -4,7 +4,7 @@ class TraderBase:
         pass
 
     def start_info(self):
-        print('ApiBase')
+        print('TraderBase')
 
     def _get_balance(self):
         pass
