@@ -7,7 +7,7 @@ bot_on_ticker = [
     {
         'ws': LWS1_FIRSTGRID,
         'ws_params':{
-            'lvls':(11.52,11.53,11.54,11.55),
+            'lvls':(11.52,11.529,11.54,11.55),
             'us_lvl': 11.57,
             'ds_lvl': 11.50,
             'grid_dir': 0 

@@ -177,6 +177,8 @@ class QuikTrader(TraderBase):
             f.write('vvvvvvvvvvvvv__' + str(now) + '__vvvvvvvvvvvvv' + '\n')
             f.write('pos: '+ str(pos) + '\n')
             f.write('need_pos: '+ str(need_pos) + '\n')
+            f.write('last_order_id: '+ str(self.last_order_id[symbol]) + '\n')
+            f.write('ws.pos: '+ str(self.ws.positions[symbol]) + '\n')
 
     def _action_debug_log(self,symbol,pos,need_pos):
         if self.need_debug:
@@ -185,7 +187,7 @@ class QuikTrader(TraderBase):
     def _work_ws(self,symbol,npos,pos,index):
         if npos != pos:
             delta_pos = npos - pos
-            q = self.quantity_map[symbol] * delta_pos
+            q = abs(self.quantity_map[symbol] * delta_pos)
             if delta_pos > 0: #long
                 self._send_open('B',q,index)
                 self._action_debug_log(symbol,pos,npos)
@@ -208,12 +210,15 @@ class QuikTrader(TraderBase):
                 poss = self._check_position_on_order()
                 self.ws.preprocessing(dfs,poss)
                 need_pos = self.ws()
-                if time_mode == -1:
+                if time_mode == -1: #close_all
                     need_pos = {s: 0 for s in self.symbols}
                 for i in self.symbol_range:
                     symbol = self.symbols[i]
                     npos = need_pos[symbol]
                     pos = poss[symbol]['pos']
+                    if time_mode == -2: #only close
+                        if abs(npos) > abs(pos):
+                            npos = pos
                     self._work_ws(symbol,npos,pos,i)
         except Exception as err:
             print(datetime.now(),self.symbols,f"!!!! {type(err).__name__}: {err} !!!!")

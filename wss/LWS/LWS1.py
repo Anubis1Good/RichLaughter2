@@ -25,6 +25,12 @@ class LWS1_FIRSTGRID(WSBase):
             self.grid_func = self.short_grid
         else:
             self.grid_func = self.neutral_grid
+
+    #исправить проблемы с неправильной 0 позицией
+    def correct_pos(self,new_pos,s):
+        if new_pos == 0:
+            new_pos = self.positions[s]
+        return new_pos
     
     def long_grid(self,row,s):
         if self.ds_lvl:
@@ -39,6 +45,7 @@ class LWS1_FIRSTGRID(WSBase):
         for lvl in self.lvls:
             if row['close'] <= lvl:
                 new_pos += 1
+        self.correct_pos(new_pos,s)
         self.need_pos[s] = new_pos
         return True
     
@@ -55,6 +62,7 @@ class LWS1_FIRSTGRID(WSBase):
         for lvl in self.lvls:
             if row['close'] >= lvl:
                 new_pos -= 1
+        self.correct_pos(new_pos,s)
         self.need_pos[s] = new_pos
         return True
     
@@ -73,8 +81,14 @@ class LWS1_FIRSTGRID(WSBase):
                 new_pos += 1
             if row['close'] >= lvl > self.middle_lvl: #short
                 new_pos -= 1
+        self.correct_pos(new_pos,s)
         self.need_pos[s] = new_pos
         return True
+    
+    def preprocessing(self, dfs, poss):
+        super().preprocessing(dfs, poss)
+        self.update_poss_mps(poss)
+        return self.last_dfs
     
     def __call__(self, *args, **kwds):
         if self.in_work:
