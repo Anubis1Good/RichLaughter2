@@ -143,7 +143,9 @@ class QuikTrader(TraderBase):
         class_code = self.class_codes[index]
         bbid,bask = get_best_glass(symbol,class_code)
         price = bbid if direction == 'B' else bask
-        self.last_kill_order_id[symbol], skip_close = smart_close_active_order(symbol,price)
+        price_f = float(price)
+        self.last_kill_order_id[symbol], skip_close = smart_close_active_order(symbol,price_f)
+        print(symbol,skip_close) #delete
         if skip_close == 0:
             self.last_order_id[symbol] = send_transaction(symbol,price,direction,quantity,class_code)
         if not self.orders_start[symbol]:
@@ -185,17 +187,20 @@ class QuikTrader(TraderBase):
             self._debug_log(symbol,pos,need_pos)
 
     def _work_ws(self,symbol,npos,pos,index):
-        if npos != pos:
-            delta_pos = npos - pos
-            q = abs(self.quantity_map[symbol] * delta_pos)
-            if delta_pos > 0: #long
-                self._send_open('B',q,index)
-                self._action_debug_log(symbol,pos,npos)
-            else: #short
-                self._send_open('S',q,index)
-                self._action_debug_log(symbol,pos,npos)
+        if npos is not None:
+            if npos != pos:
+                delta_pos = npos - pos
+                q = abs(self.quantity_map[symbol] * delta_pos)
+                if delta_pos > 0: #long
+                    self._send_open('B',q,index)
+                    self._action_debug_log(symbol,pos,npos)
+                else: #short
+                    self._send_open('S',q,index)
+                    self._action_debug_log(symbol,pos,npos)
+            else:
+                self._reset_req(symbol)     
         else:
-            self._reset_req(symbol)     
+            self._reset_req(symbol)
 
     def run(self):
         try:

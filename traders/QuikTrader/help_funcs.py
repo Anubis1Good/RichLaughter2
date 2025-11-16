@@ -119,7 +119,9 @@ def help_smart_close_active_order(qp_provider:QuikPy,active_orders,sec_code,pric
     skip_close = 0
     if active_orders:
         for ao in active_orders:
-            if str(ao['price']) == price:
+            print(ao['price'],price) #delete
+            print(type(ao['price']),type(price)) #delete
+            if ao['price'] == price:
                 skip_close += 1
                 continue
             cur_trans_id = str(int(time()*100))[3:]
@@ -141,7 +143,7 @@ def close_active_order(sec_code):
     trans_ids = help_close_active_order(active_orders,sec_code)
     return trans_ids
 
-def smart_close_active_order(sec_code,price:str):
+def smart_close_active_order(sec_code,price:float):
     '''закрытие активных ордеров не совпадающих по цене'''
     active_orders = get_active_order(sec_code)
     trans_ids,skip_close = help_smart_close_active_order(active_orders,sec_code,price)

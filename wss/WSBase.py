@@ -91,6 +91,8 @@ class WSBase:
         row_imoexf60 = self.last_dfs['1H']['IMOEXF'].iloc[-1]
         if row_imoexf60['close'] < row_imoexf60['bbd'] and row_imoexf5['close'] < row_imoexf5['bbd']:
             self.need_pos['IMOEXF'] = 1
+        
+        Если мы напишем self.need_pos['IMOEXF'] = None, то это означает, что нужно оставить текущую позицию
         """
         return self.need_pos
     

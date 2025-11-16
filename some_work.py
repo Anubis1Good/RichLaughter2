@@ -20,18 +20,20 @@ from traders.TestTrader.TestTrader import TestTrader
 #     charts=charts,
 #     close_on_time=True
 # )
-from wss.LWS.LWS1 import LWS1_FIRSTGRID
+# from wss.LWS.LWS1 import LWS1_FIRSTGRID
+from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 tt1 = TestTrader(
     ('IMOEXF',),
     ('1min',),
     (1,),
     (
-        LWS1_FIRSTGRID,    
+        WSS,    
      {
-        'lvls':(2530,2540,2550,2560,),
-        'us_lvl': None,
-        'ds_lvl': None,
-        'grid_dir': 0 
+        'period':50,
+        'amount_lvl': 2,
+        'grid_dir': 0,
+        'per_limit': 0.1,
+        'keep': True
     }
     ),
     charts={'1min':{'IMOEXF':'data_for_tests\data_from_moex\IMOEXF_1_1762793370.csv'}},

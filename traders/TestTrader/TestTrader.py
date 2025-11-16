@@ -146,14 +146,15 @@ class TestTrader(TraderBase):
     def _process_position_change(self, symbol, new_pos, new_price, last_x):
         """Основной метод обработки изменения позиции"""
         old_pos = self.trade_data[symbol]['pos']
-        delta_pos = new_pos - old_pos
-        
-        if delta_pos > 0:
-            self._handle_positive_delta(symbol, new_pos, old_pos, new_price, last_x)
-        elif delta_pos < 0:
-            self._handle_negative_delta(symbol, new_pos, old_pos, new_price, last_x)
-        if delta_pos != 0:
-            self.trade_data[symbol]['pos'] = new_pos
+        if new_pos is not None:
+            delta_pos = new_pos - old_pos
+            
+            if delta_pos > 0:
+                self._handle_positive_delta(symbol, new_pos, old_pos, new_price, last_x)
+            elif delta_pos < 0:
+                self._handle_negative_delta(symbol, new_pos, old_pos, new_price, last_x)
+            if delta_pos != 0:
+                self.trade_data[symbol]['pos'] = new_pos
 
     def _handle_positive_delta(self, symbol, new_pos, old_pos, new_price, last_x):
         """Обработка увеличения позиции (delta_pos > 0)"""
