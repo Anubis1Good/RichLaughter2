@@ -20,8 +20,8 @@ from traders.TestTrader.TestTrader import TestTrader
 #     charts=charts,
 #     close_on_time=True
 # )
-# from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
-from wss.PWS.PWS1 import PWS1_GRIDC as WSS
+from wss.LWS.LWS1 import LWS2_PSG as WSS
+# from wss.PWS.PWS1 import PWS1_PRGDC as WSS
 #     {
 #     'period':50,
 #     'amount_lvl': 2,
@@ -30,20 +30,25 @@ from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     'keep': True
 # }
 tt1 = TestTrader(
-    ('IMOEXF',),
-    ('1min',),
-    (1,),
+    ('IMOEXF','MMZ5'),
+    ('5min',),
+    (1,1),
     (
         WSS,    
         {
-        'period':50,
-        'amount_lvl': 5,
-        'grid_dir': -1,
-        'per_limit': 0.1,
-        'keep': True
+            'amount_lvl': 4,
+            'per_step':0.05,
+            'keep':False
     }
     ),
-    charts={'1min':{'IMOEXF':'data_for_tests\data_from_moex\IMOEXF_1_1762793370.csv'}},
+    charts={'5min':{
+        'IMOEXF':'data_for_tests\data_from_moex5\_5IMOEXF_1_1763392706.csv',
+        'MMZ5':'data_for_tests\data_from_moex5\_5MMZ5_1_1763392708.csv'
+        }},
+    # charts={'1min':{
+    #     'IMOEXF':'data_for_tests\data_from_moex\IMOEXF_1_1762793370.csv',
+    #     'MMZ5':'data_for_tests\data_from_moex\MMZ5_1_1762793372.csv'
+    #     }},
     close_on_time=True
 
 )
@@ -56,7 +61,7 @@ tt1 = TestTrader(
 tt1.check_fast()
 # # Печать статистики
 tt1.print_statistics('IMOEXF')
-# tt1.print_statistics('MMZ5')
+tt1.print_statistics('MMZ5')
 
 # tt1.reload_data()
 # tt1.check_fast_vectorized()

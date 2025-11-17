@@ -386,5 +386,118 @@ class LWS2_SWIMGRID(WSBase):
             # print(self.lvls[s],row['close'],self.need_pos[s])
         return self.need_pos
 
+class LWS2_PSG(WSBase):
+    """парный реверс плавающий грид-бот c автоматическим рассчетом уровней"""
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        """
+        parameters = {
+            'amount_lvl': 5,
+            'per_step':0.1,
+            'keep':False
+        }
+        """
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        self.amount_lvl = parameters['amount_lvl']
+        self.first_run = {s: True for s in self.symbols}
+        self.step = {s: None for s in self.symbols}
+        self.lvls = {s: list() for s in self.symbols}
+        self.per_step = parameters['per_step']
+        self.buff = self.per_step / 2
+        self.keep = parameters['keep']
+        self.grid_dirs = {s: 1 for s in self.symbols}
+        self.grid_dirs[self.symbols[1]] = -1
+        self.up_lvls = {s: None for s in self.symbols}
+        self.down_lvls = {s: None for s in self.symbols}
+
+    def update_grid(self,s,row):
+        self.step[s] = (row['close'] / 100) * self.per_step
+        if self.grid_dirs[s] == 1: #long
+            self.long_init_grid(s,row)
+        else:
+            self.short_init_grid(s,row)
+
+    def grid_func(self,row,s):
+        if self.grid_dirs[s] == 1: #long
+            self.long_grid(row,s)
+        else:
+            self.short_grid(row,s)
+
+    def long_init_grid(self,s,row):
+        self.lvls[s].clear()
+        n_lvl = row['close'] // self.step[s]
+        start_lvl = self.step[s] * n_lvl
+        for i in range(self.amount_lvl):
+            lvl = start_lvl - self.step[s]*i
+            self.lvls[s].append(lvl)
+        self.up_lvls[s] = start_lvl + self.step[s]
+        self.down_lvls[s] = start_lvl - self.step[s] * self.amount_lvl
+
+    def short_init_grid(self,s,row):
+        self.lvls[s].clear()
+        n_lvl = row['close'] // self.step[s]
+        start_lvl = self.step[s] * n_lvl
+        for i in range(self.amount_lvl):
+            lvl = start_lvl + self.step[s]*i
+            self.lvls[s].append(lvl)
+        self.up_lvls[s] = start_lvl + self.step[s] * self.amount_lvl
+        self.down_lvls[s] = start_lvl - self.step[s]
+
+    def long_grid(self,row,s):
+        new_pos = -1
+        buff = self.step[s] / 2
+        for lvl in self.lvls[s]:
+            if row['close'] <= lvl:
+                new_pos += 1
+            elif lvl + buff >= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
+        elif new_pos == -1:
+            if self.keep:
+                new_pos = None
+            else:
+                new_pos = 0
+        self.need_pos[s] = new_pos
+
+    
+    def short_grid(self,row,s):
+        new_pos = 1
+        buff = self.step[s] / 2
+        for lvl in self.lvls[s]:
+            if row['close'] >= lvl:
+                new_pos -= 1
+            elif lvl - buff <= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
+        elif new_pos == 1:
+            if self.keep:
+                new_pos = None
+            else:
+                new_pos = 0
+        self.need_pos[s] = new_pos
+        
+    def preprocessing(self, dfs, poss):
+        self.last_dfs = dfs.copy()
+        self.update_poss_mps(poss)
+        return self.last_dfs
+    
+    def __call__(self, *args, **kwds):
+        tf1 = self.timeframes[0]
+        for s in self.last_dfs[tf1]:
+            row = self.last_dfs[tf1][s].iloc[-1]
+            if self.first_run[s]:
+                self.first_run[s] = False
+                self.update_grid(s,row)
+                print('LWS2_PSG:',s,self.grid_dirs[s],self.lvls[s])
+            if row['close'] > self.up_lvls[s] or row['close'] < self.down_lvls[s]:
+                self.update_grid(s,row)
+                # print(s,row['close'],self.lvls[s])
+            self.grid_func(row,s)
+            # print(s,row['close'],self.lvls[s],self.need_pos[s])
+        return self.need_pos
+
 
         

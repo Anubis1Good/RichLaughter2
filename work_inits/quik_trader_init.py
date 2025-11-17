@@ -1,4 +1,4 @@
-from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID
+from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID,LWS2_PSG
 
 
 from traders.QuikTrader.QuikTrader import QuikTrader
@@ -42,36 +42,52 @@ bot_on_ticker = [
         ]
 
     },
+    # {
+    #     'ws': LWS2_SWIMGRID,
+    #     'ws_params':{
+    #         'amount_lvl': 3,
+    #         'per_step':0.2,
+    #         'grid_dir': 1,
+    #         'keep':False
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('MMZ5',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
+
+    # },
+    # {
+    #     'ws': LWS1_FIRSTGRID,
+    #     'ws_params':{
+    #         'lvls':(2490,2505,2513),
+    #         'us_lvl': 2520,
+    #         'ds_lvl': None,
+    #         'grid_dir': 1 
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('IMOEXF',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
+
+    # },
     {
-        'ws': LWS2_SWIMGRID,
+        'ws': LWS2_PSG,
         'ws_params':{
-            'amount_lvl': 5,
-            'per_step':0.2,
-            'grid_dir': 0,
+            'amount_lvl': 4,
+            'per_step':0.05,
             'keep':False
         },
         'dts': [
             {
-                'ss':('MMZ5',),
+                'ss':('IMOEXF','MMZ5'),
                 'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
-
-    },
-    {
-        'ws': LWS1_FIRSTGRID,
-        'ws_params':{
-            'lvls':(2490,2505,2513),
-            'us_lvl': 2520,
-            'ds_lvl': None,
-            'grid_dir': 1 
-        },
-        'dts': [
-            {
-                'ss':('IMOEXF',),
-                'tfs':('M5',),
-                'qs': (1,)
+                'qs': (1,1)
             }
         ]
 
