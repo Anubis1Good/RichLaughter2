@@ -119,8 +119,8 @@ def help_smart_close_active_order(qp_provider:QuikPy,active_orders,sec_code,pric
     skip_close = 0
     if active_orders:
         for ao in active_orders:
-            print(ao['price'],price) #delete
-            print(type(ao['price']),type(price)) #delete
+            # print(ao['price'],price) #delete
+            # print(type(ao['price']),type(price)) #delete
             if ao['price'] == price:
                 skip_close += 1
                 continue

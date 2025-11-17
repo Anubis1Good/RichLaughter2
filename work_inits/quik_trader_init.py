@@ -4,32 +4,53 @@ from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID
 from traders.QuikTrader.QuikTrader import QuikTrader
 
 bot_on_ticker = [
-    # {
-    #     'ws': LWS1_FIRSTGRID,
-    #     'ws_params':{
-    #         'lvls':(11.52,11.53,11.54,11.55),
-    #         'us_lvl': 11.57,
-    #         'ds_lvl': 11.50,
-    #         'grid_dir': 0 
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('CRZ5',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
     {
         'ws': LWS1_AUTOGRID,
         'ws_params':{
-            'start':2560,
-            'end':2568,
-            'amount_lvl': 3,
-            'us_lvl': 2571,
-            'ds_lvl': 2558,
-            'grid_dir': -1,
+            'start':11.440,
+            'end':11.640,
+            'amount_lvl': 10,
+            'us_lvl': 11.740,
+            'ds_lvl': 11.340,
+            'grid_dir': 0,
+        },
+        'dts': [
+            {
+                'ss':('CRZ5',),
+                'tfs':('M5',),
+                'qs': (1,)
+            }
+        ]
+
+    },
+    {
+        'ws': LWS1_AUTOGRID,
+        'ws_params':{
+            'start':11.360,
+            'end':11.440,
+            'amount_lvl': 5,
+            'us_lvl': 11.540,
+            'ds_lvl': 11.260,
+            'grid_dir': 0,
+        },
+        'dts': [
+            {
+                'ss':('CNYRUBF',),
+                'tfs':('M5',),
+                'qs': (1,)
+            }
+        ]
+
+    },
+    {
+        'ws': LWS1_AUTOGRID,
+        'ws_params':{
+            'start':2537,
+            'end':2550,
+            'amount_lvl': 2,
+            'us_lvl': 2557,
+            'ds_lvl': None,
+            'grid_dir': 1,
         },
         'dts': [
             {
@@ -43,10 +64,10 @@ bot_on_ticker = [
     {
         'ws': LWS1_FIRSTGRID,
         'ws_params':{
-            'lvls':(2527,2530,2534),
-            'us_lvl': 2537,
-            'ds_lvl': 2525,
-            'grid_dir': -1 
+            'lvls':(2490,2505,2513),
+            'us_lvl': 2523,
+            'ds_lvl': None,
+            'grid_dir': 1 
         },
         'dts': [
             {
@@ -60,12 +81,12 @@ bot_on_ticker = [
     {
         'ws': LWS1_AUTOGRID,
         'ws_params':{
-            'start':11950,
-            'end':12030,
-            'amount_lvl': 4,
-            'us_lvl': 12060,
-            'ds_lvl': 11940,
-            'grid_dir': 0,
+            'start':11885,
+            'end':12080,
+            'amount_lvl': 3,
+            'us_lvl': 12120,
+            'ds_lvl': None,
+            'grid_dir': 1,
         },
         'dts': [
             {

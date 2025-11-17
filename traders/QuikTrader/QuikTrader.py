@@ -145,7 +145,7 @@ class QuikTrader(TraderBase):
         price = bbid if direction == 'B' else bask
         price_f = float(price)
         self.last_kill_order_id[symbol], skip_close = smart_close_active_order(symbol,price_f)
-        print(symbol,skip_close) #delete
+        # print(symbol,skip_close) #delete
         if skip_close == 0:
             self.last_order_id[symbol] = send_transaction(symbol,price,direction,quantity,class_code)
         if not self.orders_start[symbol]:

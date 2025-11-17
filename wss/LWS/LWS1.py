@@ -14,6 +14,12 @@ class LWS1_FIRSTGRID(WSBase):
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
         self.lvls = parameters['lvls']
+        self.buffs = []
+        buff = 0
+        for i,lvl in enumerate(self.lvls):
+            if i != len(self.lvls) - 1:
+                buff = (self.lvls[i+1] - lvl) / 2
+            self.buffs.append(buff)
         self.us_lvl = parameters['us_lvl']
         self.ds_lvl = parameters['ds_lvl']
         self.grid_dir = parameters['grid_dir']
@@ -25,12 +31,6 @@ class LWS1_FIRSTGRID(WSBase):
             self.grid_func = self.short_grid
         else:
             self.grid_func = self.neutral_grid
-
-    #исправить проблемы с неправильной 0 позицией
-    def correct_pos(self,new_pos,s):
-        if new_pos == 0:
-            new_pos = self.positions[s]
-        return new_pos
     
     def long_grid(self,row,s):
         if self.ds_lvl:
@@ -42,10 +42,14 @@ class LWS1_FIRSTGRID(WSBase):
                 self.need_pos[s] = 0
                 return True
         new_pos = 0
-        for lvl in self.lvls:
+        for i,lvl in enumerate(self.lvls):
             if row['close'] <= lvl:
                 new_pos += 1
-        new_pos = self.correct_pos(new_pos,s)
+            elif lvl + self.buffs[i] >= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
@@ -59,10 +63,14 @@ class LWS1_FIRSTGRID(WSBase):
                 self.need_pos[s] = 0
                 return True
         new_pos = 0
-        for lvl in self.lvls:
+        for i,lvl in enumerate(self.lvls):
             if row['close'] >= lvl:
                 new_pos -= 1
-        new_pos = self.correct_pos(new_pos,s)
+            elif lvl - self.buffs[i] <= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
@@ -76,12 +84,21 @@ class LWS1_FIRSTGRID(WSBase):
                 self.in_work = False
                 return False 
         new_pos = 0
-        for lvl in self.lvls:
-            if row['close'] <= lvl < self.middle_lvl: #long
-                new_pos += 1
-            if row['close'] >= lvl > self.middle_lvl: #short
-                new_pos -= 1
-        new_pos = self.correct_pos(new_pos,s)
+        for i,lvl in enumerate(self.lvls):
+            if lvl < self.middle_lvl:
+                if row['close'] <= lvl:
+                    new_pos += 1
+                elif lvl + self.buffs[i] >= row['close'] and self.positions[s] > 0:
+                    new_pos = None
+                    break
+            elif lvl > self.middle_lvl:
+                if row['close'] >= lvl:
+                    new_pos -= 1
+                elif lvl - self.buffs[i] <= row['close'] and self.positions[s] < 0:
+                    new_pos = None
+                    break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
@@ -116,6 +133,7 @@ class LWS1_AUTOGRID(WSBase):
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
         step_lvl = (parameters['end'] - parameters['start']) / parameters['amount_lvl']
+        self.buff = step_lvl / 2
         self.grid_dir = parameters['grid_dir']
         if self.grid_dir == 1: #long
             self.grid_func = self.long_grid
@@ -134,12 +152,6 @@ class LWS1_AUTOGRID(WSBase):
         self.middle_lvl = sum(self.lvls) / len(self.lvls)
         self.in_work = True
 
-    #исправить проблемы с неправильной 0 позицией
-    def correct_pos(self,new_pos,s):
-        if new_pos == 0:
-            new_pos = self.positions[s]
-        return new_pos
-    
     def long_grid(self,row,s):
         if self.ds_lvl:
             if row['close'] < self.ds_lvl:
@@ -153,7 +165,11 @@ class LWS1_AUTOGRID(WSBase):
         for lvl in self.lvls:
             if row['close'] <= lvl:
                 new_pos += 1
-        new_pos = self.correct_pos(new_pos,s)
+            elif lvl + self.buff >= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
@@ -170,7 +186,11 @@ class LWS1_AUTOGRID(WSBase):
         for lvl in self.lvls:
             if row['close'] >= lvl:
                 new_pos -= 1
-        new_pos = self.correct_pos(new_pos,s)
+            elif lvl - self.buff <= row['close']:
+                new_pos = None
+                break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
@@ -185,11 +205,20 @@ class LWS1_AUTOGRID(WSBase):
                 return False 
         new_pos = 0
         for lvl in self.lvls:
-            if row['close'] <= lvl < self.middle_lvl: #long
-                new_pos += 1
-            if row['close'] >= lvl > self.middle_lvl: #short
-                new_pos -= 1
-        new_pos = self.correct_pos(new_pos,s)
+            if lvl < self.middle_lvl:
+                if row['close'] <= lvl:
+                    new_pos += 1
+                elif lvl + self.buff >= row['close'] and self.positions[s] > 0:
+                    new_pos = None
+                    break
+            elif lvl > self.middle_lvl:
+                if row['close'] >= lvl:
+                    new_pos -= 1
+                elif lvl - self.buff <= row['close'] and self.positions[s] < 0:
+                    new_pos = None
+                    break
+        if new_pos == 0:
+            new_pos = None
         self.need_pos[s] = new_pos
         return True
     
