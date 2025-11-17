@@ -20,18 +20,25 @@ from traders.TestTrader.TestTrader import TestTrader
 #     charts=charts,
 #     close_on_time=True
 # )
-# from wss.LWS.LWS1 import LWS1_FIRSTGRID
+# from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 from wss.PWS.PWS1 import PWS1_GRIDC as WSS
+#     {
+#     'period':50,
+#     'amount_lvl': 2,
+#     'grid_dir': 0,
+#     'per_limit': 0.1,
+#     'keep': True
+# }
 tt1 = TestTrader(
     ('IMOEXF',),
     ('1min',),
     (1,),
     (
         WSS,    
-     {
+        {
         'period':50,
-        'amount_lvl': 2,
-        'grid_dir': 0,
+        'amount_lvl': 5,
+        'grid_dir': -1,
         'per_limit': 0.1,
         'keep': True
     }

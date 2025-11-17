@@ -1,4 +1,4 @@
-from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID
+from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID
 
 
 from traders.QuikTrader.QuikTrader import QuikTrader
@@ -43,14 +43,12 @@ bot_on_ticker = [
 
     },
     {
-        'ws': LWS1_AUTOGRID,
+        'ws': LWS2_SWIMGRID,
         'ws_params':{
-            'start':2537,
-            'end':2550,
-            'amount_lvl': 2,
-            'us_lvl': 2557,
-            'ds_lvl': None,
-            'grid_dir': 1,
+            'amount_lvl': 5,
+            'per_step':0.2,
+            'grid_dir': 0,
+            'keep':False
         },
         'dts': [
             {
@@ -65,7 +63,7 @@ bot_on_ticker = [
         'ws': LWS1_FIRSTGRID,
         'ws_params':{
             'lvls':(2490,2505,2513),
-            'us_lvl': 2523,
+            'us_lvl': 2520,
             'ds_lvl': None,
             'grid_dir': 1 
         },
@@ -79,14 +77,12 @@ bot_on_ticker = [
 
     },
     {
-        'ws': LWS1_AUTOGRID,
+        'ws': LWS2_SWIMGRID,
         'ws_params':{
-            'start':11885,
-            'end':12080,
             'amount_lvl': 3,
-            'us_lvl': 12120,
-            'ds_lvl': None,
+            'per_step':0.4,
             'grid_dir': 1,
+            'keep':False
         },
         'dts': [
             {

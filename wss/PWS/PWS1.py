@@ -3,7 +3,7 @@ from wss.WSBase import WSBase
 from indicators.classic_ind import add_donchan_channel
 
 
-    
+#Исправить дребезжание
 class PWS1_GRIDC(WSBase):
     """грид-бот по DC"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
@@ -36,10 +36,16 @@ class PWS1_GRIDC(WSBase):
             for i in self.range_amount:
                 if row['close'] <= row['lvl_'+str(i)]:
                     new_pos += 1
-            if new_pos == -1:
-                new_pos = 0
-            if new_pos == 0 and self.keep:
+                elif row['close'] <= row['lvl_'+str(i)] + row['buff']:
+                    new_pos = None
+                    break
+            if new_pos == 0:
                 new_pos = None
+            elif new_pos == -1:
+                if self.keep:
+                    new_pos = None
+                else:
+                    new_pos = 0
         else:
             new_pos = None
         self.need_pos[s] = new_pos
@@ -51,10 +57,16 @@ class PWS1_GRIDC(WSBase):
             for i in self.range_amount:
                 if row['close'] >= row['lvl_'+str(i)]:
                     new_pos -= 1
-            if new_pos == 1:
-                new_pos = 0
-            if new_pos == 0 and self.keep:
+                elif row['close'] >= row['lvl_'+str(i)] - row['buff']:
+                    new_pos = None
+                    break
+            if new_pos == 0:
                 new_pos = None
+            elif new_pos == 1:
+                if self.keep:
+                    new_pos = None
+                else:
+                    new_pos = 0
         else:
             new_pos = None
         self.need_pos[s] = new_pos
@@ -63,11 +75,19 @@ class PWS1_GRIDC(WSBase):
         if row['allow_grid']:
             new_pos = 0
             for i in self.range_amount:
-                if row['close'] > row['lvl_'+str(i)] > row['average']:
-                    new_pos -= 1
-                if row['close'] < row['lvl_'+str(i)] < row['average']:
-                    new_pos += 1
-            if new_pos == 0 and self.keep:
+                if row['lvl_'+str(i)] > row['average']:
+                    if row['close'] >= row['lvl_'+str(i)]:
+                        new_pos -= 1
+                    elif row['close'] >= row['lvl_'+str(i)] - row['buff'] and self.positions[s] > 0:
+                        new_pos = None
+                        break
+                elif row['lvl_'+str(i)] < row['average']:
+                    if row['close'] <= row['lvl_'+str(i)]:
+                        new_pos += 1
+                    elif row['close'] <= row['lvl_'+str(i)] + row['buff'] and self.positions[s] < 0:
+                        new_pos = None
+                        break
+            if new_pos == 0:
                 new_pos = None
         else:
             new_pos = None
@@ -83,6 +103,7 @@ class PWS1_GRIDC(WSBase):
                 df = add_donchan_channel(df,self.period)
                 df['dcr'] = df['max_hb'] - df['min_hb']
                 df['step'] = df['dcr'] / self.amount_lvl
+                df['buff'] = df['step'] / 2
                 df['per_step'] = (df['step'] / df['close']) * 100
                 df['allow_grid'] = df['per_step'] > self.per_limit
                 for i in self.range_amount:
