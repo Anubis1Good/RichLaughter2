@@ -222,8 +222,9 @@ class QuikTrader(TraderBase):
                     npos = need_pos[symbol]
                     pos = poss[symbol]['pos']
                     if time_mode == -2: #only close
-                        if abs(npos) > abs(pos):
-                            npos = pos
+                        if npos is not None:
+                            if abs(npos) > abs(pos):
+                                npos = pos
                     self._work_ws(symbol,npos,pos,i)
         except Exception as err:
             print(datetime.now(),self.symbols,f"!!!! {type(err).__name__}: {err} !!!!")

@@ -1,4 +1,4 @@
-from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID,LWS2_PSG
+from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID,LWS2_PSGSON,LWS2_SWIMIGSON
 
 
 from traders.QuikTrader.QuikTrader import QuikTrader
@@ -42,74 +42,79 @@ bot_on_ticker = [
         ]
 
     },
-    # {
-    #     'ws': LWS2_SWIMGRID,
-    #     'ws_params':{
-    #         'amount_lvl': 3,
-    #         'per_step':0.2,
-    #         'grid_dir': 1,
-    #         'keep':False
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('MMZ5',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
-    # {
-    #     'ws': LWS1_FIRSTGRID,
-    #     'ws_params':{
-    #         'lvls':(2490,2505,2513),
-    #         'us_lvl': 2520,
-    #         'ds_lvl': None,
-    #         'grid_dir': 1 
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('IMOEXF',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
     {
-        'ws': LWS2_PSG,
+        'ws': LWS1_AUTOGRID,
         'ws_params':{
-            'amount_lvl': 4,
-            'per_step':0.05,
-            'keep':False,
-            'reset_n':2
+            'start':2500,
+            'end':2650,
+            'amount_lvl': 3,
+            'us_lvl': 2680,
+            'ds_lvl': None,
+            'grid_dir': 1,
         },
         'dts': [
             {
-                'ss':('IMOEXF','MMZ5'),
+                'ss':('MMZ5',),
                 'tfs':('M5',),
-                'qs': (1,1)
+                'qs': (1,)
+            }
+        ]
+
+    },
+    {
+        'ws': LWS1_AUTOGRID,
+        'ws_params':{
+            'start':2480,
+            'end':2605,
+            'amount_lvl': 3,
+            'us_lvl': 2640,
+            'ds_lvl': None,
+            'grid_dir': 1,
+        },
+        'dts': [
+            {
+                'ss':('IMOEXF',),
+                'tfs':('M5',),
+                'qs': (1,)
             }
         ]
 
     },
     # {
-    #     'ws': LWS2_SWIMGRID,
+    #     'ws': LWS2_PSGSON,
     #     'ws_params':{
     #         'amount_lvl': 3,
-    #         'per_step':0.4,
-    #         'grid_dir': 1,
-    #         'keep':False
+    #         'per_step':0.10,
+    #         'keep':False,
+    #         'reset_n':3
     #     },
     #     'dts': [
     #         {
-    #             'ss':('GZZ5',),
+    #             'ss':('IMOEXF','MMZ5'),
     #             'tfs':('M5',),
-    #             'qs': (1,)
+    #             'qs': (1,1)
     #         }
     #     ]
 
     # },
+    {
+        'ws': LWS2_SWIMIGSON,
+        'ws_params':{
+            'amount_lvl': 4,
+            'per_step':0.5,
+            'grid_dir': 1,
+            'keep':False,
+            'reset_n':2
+        },
+        'dts': [
+            {
+                'ss':('GZZ5',),
+                'tfs':('M5',),
+                'qs': (1,)
+            }
+        ]
+
+    },
 ]
 
 def init_trader() -> list[QuikTrader]:
@@ -118,6 +123,6 @@ def init_trader() -> list[QuikTrader]:
         ws = (conf_ws['ws'],conf_ws['ws_params'])
         for dt in conf_ws['dts']:
             print(dt['ss'],dt['tfs'],ws)
-            bot = QuikTrader(dt['ss'],dt['tfs'],dt['qs'],ws,need_debug=True)
+            bot = QuikTrader(dt['ss'],dt['tfs'],dt['qs'],ws,need_debug=True,close_on_time=False)
             bots.append(bot)
     return bots

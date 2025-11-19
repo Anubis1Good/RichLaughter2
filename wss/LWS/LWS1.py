@@ -797,7 +797,7 @@ class LWS2_PSGSON(WSBase):
             # print(s,row['close'],self.lvls[s],self.need_pos[s])
         return self.need_pos
     
-class LWS3_a(WSBase):
+class LWS3_NEXUS(WSBase):
     """Парный реверс хедж"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """
@@ -857,7 +857,7 @@ class LWS3_a(WSBase):
             # print(s,row['rsi'],npos)
         return self.need_pos
     
-class LWS3_b(WSBase):
+class LWS3_APEX(WSBase):
     """Парный реверс хедж"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """

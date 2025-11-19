@@ -5,7 +5,9 @@ symbols = [
     'MMZ5',
     'IMOEXF',
     'SRZ5',
-    'GZZ5'
+    'GZZ5',
+    'CRZ5',
+    'CNYRUBF'
 ]
 quntities = [1 for s in symbols]
 bot = QuikTrader(symbols,['M5'],quntities,(CloseWS,dict()))

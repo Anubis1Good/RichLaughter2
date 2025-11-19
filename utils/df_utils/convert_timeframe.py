@@ -110,6 +110,17 @@ def convert_timeframe(df, timeframe, agg_rules=None, datetime_col='ms', recalc_d
     if 'x' in df_resampled:
         df_resampled['x'] = df_resampled.index
     
+    for col in df_resampled.select_dtypes(include=[np.number]).columns:
+        # Пропускаем булевы колонки и колонки с категориальными данными
+        if pd.api.types.is_bool_dtype(df_resampled[col]):
+            continue
+            
+        # Проверяем, содержит ли колонка только целые числа
+        if pd.api.types.is_integer_dtype(df_resampled[col]) or (df_resampled[col] % 1 == 0).all():
+            df_resampled[col] = pd.to_numeric(df_resampled[col], downcast='integer')
+        else:
+            df_resampled[col] = pd.to_numeric(df_resampled[col], downcast='float')
+    
     return df_resampled
 
 if __name__ == "__main__":
