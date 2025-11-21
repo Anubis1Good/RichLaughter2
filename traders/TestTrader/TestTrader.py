@@ -2,12 +2,14 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from tqdm import tqdm
 from time import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Union
 from traders.TraderBase import TraderBase
 from wss.WSBase import WSBase
 from utils.processing.add_vtb_fee_fut import get_func_vtb_fee
+from utils.df_utils.convert_timeframe import convert_timeframe
 
 def duration_time(func):
     def wrapper(self, *args, **kwargs):
@@ -448,113 +450,442 @@ class TestTrader(TraderBase):
                     content += k + ': ' + str(data[k]) + ' '
                 f.write(content)
 
-    
     @duration_time
-    def check_fast_vectorized(self):
-        poss = self._check_position()
-        self.ws.preprocessing(self.charts, poss)
-        dfs = self.get_deep_copy_last_dfs()
+    def check_window_fast(self, window_size=150):
         tf1 = self.timeframes[0]
         
-        # Создаем единый DataFrame для всех символов на основном таймфрейме
-        master_dates = dfs[tf1][self.symbols[0]]['ms'].values
-        
-        # Предварительная загрузка всех данных в память
-        preloaded_data = {}
-        for tf in dfs:
-            preloaded_data[tf] = {}
-            for s in dfs[tf]:
-                df = dfs[tf][s].copy()
+        # Предварительная индексация данных
+        indexed_charts = {}
+        for tf in self.charts:
+            indexed_charts[tf] = {}
+            for s in self.charts[tf]:
+                df = self.charts[tf][s].copy()
                 df['timestamp'] = pd.to_datetime(df['ms'])
-                preloaded_data[tf][s] = df.set_index('timestamp').sort_index()
+                indexed_charts[tf][s] = df.set_index('timestamp').sort_index()
         
-        # Основной цикл по датам
-        for i, current_date in enumerate(master_dates):
-            # Батч-обновление всех данных
-            for tf in preloaded_data:
-                for s in preloaded_data[tf]:
-                    filtered_data = preloaded_data[tf][s].loc[:current_date]
-                    self.ws.last_dfs[tf][s] = filtered_data.reset_index()
-            
-            # Вызов логики торговли
-            need_pos = self.ws()
-            
-            # Быстрое получение последних значений
-            last_prices = {}
-            last_xs = {}
-            for s in self.symbols:
-                last_row = self.ws.last_dfs[tf1][s].iloc[-1]
-                last_prices[s] = last_row['close']
-                last_xs[s] = last_row['x']
-            
-            # Проверка времени закрытия
-            if self.close_on_time:
-                last_row = self.ws.last_dfs[tf1][self.symbols[0]].iloc[-1]
-                time_close = self.close_map[last_row['weekday']]
-                if last_row['ms'].hour >= time_close[0] and last_row['ms'].minute >= time_close[1]:
-                    need_pos = {s: 0 for s in need_pos}
-            
-            self.work_need_pos(need_pos, last_prices, last_xs)
-
-    @duration_time
-    def check_fast_cached(self):
-        poss = self._check_position()
-        self.ws.preprocessing(self.charts, poss)
-        dfs = self.get_deep_copy_last_dfs()
-        tf1 = self.timeframes[0]
+        dates_df1 = indexed_charts[tf1][self.symbols[0]].index
+        cache = {}  # Кэш для окон данных
         
-        # Создаем кэш для отфильтрованных данных
-        filter_cache = {}
-        
-        dates_df1 = dfs[tf1][self.symbols[0]]['ms'].values
-        prev_date = None
-        
-        for current_date in dates_df1:
-            # Используем кэш для инкрементальной фильтрации
-            for tf in dfs:
-                for s in dfs[tf]:
-                    cache_key = (tf, s)
-                    if cache_key not in filter_cache:
-                        # Первая итерация - полная фильтрация
-                        filtered_df = dfs[tf][s][dfs[tf][s]['ms'] <= current_date]
-                        filter_cache[cache_key] = filtered_df
+        for i, d in enumerate(dates_df1):
+            if i < window_size:
+                continue
+                
+            poss = self._check_position()
+            temp_dfs = {tf: {} for tf in self.timeframes}
+            
+            for tf in indexed_charts:
+                for s in indexed_charts[tf]:
+                    cache_key = (tf, s, d)
+                    if cache_key in cache:
+                        filtered_df = cache[cache_key]
                     else:
-                        # Инкрементальное обновление - только новые строки
-                        prev_data = filter_cache[cache_key]
-                        new_data = dfs[tf][s][
-                            (dfs[tf][s]['ms'] > prev_date) & 
-                            (dfs[tf][s]['ms'] <= current_date)
-                        ]
-                        if len(new_data) > 0:
-                            filtered_df = pd.concat([prev_data, new_data], ignore_index=True)
-                            filter_cache[cache_key] = filtered_df
-                        else:
-                            filtered_df = prev_data
+                        # Быстрый срез по индексу
+                        filtered_df = indexed_charts[tf][s].loc[:d].tail(window_size).reset_index()
+                        cache[cache_key] = filtered_df
                     
-                    self.ws.last_dfs[tf][s] = filtered_df
+                    temp_dfs[tf][s] = filtered_df
             
-            prev_date = current_date
-            
-            # Остальная логика без изменений
+            self.ws.preprocessing(temp_dfs, poss)
             need_pos = self.ws()
             last_prices = {s: self.ws.last_dfs[tf1][s].iloc[-1]['close'] for s in self.symbols}
             last_xs = {s: self.ws.last_dfs[tf1][s].iloc[-1]['x'] for s in self.symbols}
-            
             if self.close_on_time:
                 last_row = self.ws.last_dfs[tf1][self.symbols[0]].iloc[-1]
                 time_close = self.close_map[last_row['weekday']]
                 if last_row['ms'].hour >= time_close[0] and last_row['ms'].minute >= time_close[1]:
                     for s in need_pos:
                         need_pos[s] = 0
-            
-            self.work_need_pos(need_pos, last_prices, last_xs)
+            self.work_need_pos(need_pos,last_prices,last_xs)
 
-    def check_window(self,window_size=150):
-        ...
+
+
+    @duration_time
+    def check_window_old(self,window_size=150):
+        tf1 = self.timeframes[0]
+        dates_df1 = self.charts[tf1][self.symbols[0]]['ms'].to_list()
+        for i,d in enumerate(dates_df1):
+            if i < window_size:
+                continue
+            poss = self._check_position()
+            temp_dfs = {tf: {} for tf in self.timeframes}
+            for tf in self.charts:
+                for s in self.charts[tf]:
+                    df = self.charts[tf][s].copy()
+                    filtered_df = df[df['ms'] <= d]
+                    if len(filtered_df) > window_size:
+                        filtered_df = filtered_df.iloc[-window_size:].copy()
+                    # Обновляем датафрейм в основном хранилище
+                    temp_dfs[tf][s] = filtered_df
+            self.ws.preprocessing(temp_dfs,poss)
+            need_pos = self.ws()
+            last_prices = {s: self.ws.last_dfs[tf1][s].iloc[-1]['close'] for s in self.symbols}
+            last_xs = {s: self.ws.last_dfs[tf1][s].iloc[-1]['x'] for s in self.symbols}
+            if self.close_on_time:
+                last_row = self.ws.last_dfs[tf1][self.symbols[0]].iloc[-1]
+                time_close = self.close_map[last_row['weekday']]
+                if last_row['ms'].hour >= time_close[0] and last_row['ms'].minute >= time_close[1]:
+                    for s in need_pos:
+                        need_pos[s] = 0
+            self.work_need_pos(need_pos,last_prices,last_xs)
+
+    @duration_time
+    def check_child(self, window_size=150, timeframe='5min'):
+        """
+        Тестирование через младшие таймфреймы (child timeframe)
+        """
+        tf1 = self.timeframes[0]
+        
+        # Конвертируем основной таймфрейм в целевой используя готовую функцию
+        big_timeframe_dfs = {}
+        for s in self.symbols:
+            df_main = self.charts[tf1][s].copy()
+            big_timeframe_dfs[s] = convert_timeframe(df_main, timeframe)
+        
+        # Добавляем флаг закрытия если нужно
+        if self.close_on_time:
+            for s in self.symbols:
+                df_big = big_timeframe_dfs[s]
+                df_main = self.charts[tf1][s]
+                df_big['close_2330'] = ((df_big['ms'].dt.hour == 23) & 
+                                    (df_big['ms'].dt.minute > 25))
+                df_main['close_2330'] = ((df_main['ms'].dt.hour == 23) & 
+                                    (df_main['ms'].dt.minute > 25))
+        
+        # Проходим по всем барам большого таймфрейма
+        period2x = 300
+        big_dates = list(big_timeframe_dfs[self.symbols[0]]['ms'])
+        
+        for i in tqdm(range(period2x, len(big_dates))):
+            current_big_time = big_dates[i]
+            prev_big_time = big_dates[i-1]
+            
+            # Получаем окно данных для ВСЕХ таймфреймов
+            temp_dfs_base = {tf: {} for tf in self.timeframes}
+            
+            for tf in self.timeframes:
+                for s in self.symbols:
+                    if tf == timeframe:
+                        # Для целевого таймфрейма используем конвертированные данные
+                        df_big = big_timeframe_dfs[s]
+                        temp_dfs_base[tf][s] = df_big.iloc[i-period2x:i].copy()
+                    else:
+                        # Для остальных таймфреймов фильтруем данные до текущего времени
+                        df_tf = self.charts[tf][s]
+                        mask = df_tf['ms'] <= current_big_time
+                        filtered_df = df_tf[mask].copy()
+                        if len(filtered_df) > window_size:
+                            filtered_df = filtered_df.iloc[-window_size:]
+                        temp_dfs_base[tf][s] = filtered_df
+            
+            # Получаем child свечи для каждого символа
+            child_candles_all = {}
+            for s in self.symbols:
+                df_main = self.charts[tf1][s]
+                mask = (df_main['ms'] >= prev_big_time) & (df_main['ms'] < current_big_time)
+                df_child = df_main[mask].copy()
+                
+                if len(df_child) > 0:
+                    child_candles_all[s] = self._get_child_candles(df_child, temp_dfs_base[timeframe][s].iloc[-1])
+                else:
+                    child_candles_all[s] = []
+            
+            # Обрабатываем каждую child свечу
+            max_child_candles = max(len(candles) for candles in child_candles_all.values()) if child_candles_all else 0
+            
+            for j in range(max_child_candles):
+                # Создаем временные датафреймы с обновленной последней свечой
+                temp_dfs = {tf: {} for tf in self.timeframes}
+                
+                # Копируем базовые данные
+                for tf in self.timeframes:
+                    for s in self.symbols:
+                        temp_dfs[tf][s] = temp_dfs_base[tf][s].copy()
+                
+                # Обновляем последнюю свечу в целевом таймфрейме для всех символов
+                for s in self.symbols:
+                    child_candles = child_candles_all.get(s, [])
+                    if j < len(child_candles) and timeframe in temp_dfs and s in temp_dfs[timeframe]:
+                        if len(temp_dfs[timeframe][s]) > 0:
+                            # Безопасное обновление через создание новой строки
+                            child_candle = child_candles[j]
+                            updated_row = temp_dfs[timeframe][s].iloc[-1:].copy()
+                            
+                            # Обновляем значения в копии строки
+                            for col in child_candle.index:
+                                if col in updated_row.columns:
+                                    target_dtype = temp_dfs[timeframe][s][col].dtype
+                                    updated_row[col] = self._safe_type_conversion(child_candle[col], target_dtype)
+                            
+                            # Заменяем последнюю строку обновленной версией
+                            temp_dfs[timeframe][s] = pd.concat([
+                                temp_dfs[timeframe][s].iloc[:-1], 
+                                updated_row
+                            ], ignore_index=True)
+                
+                # Получаем текущие позиции
+                poss = self._check_position()
+                
+                # Препроцессинг и получение сигналов
+                self.ws.preprocessing(temp_dfs, poss)
+                need_pos = self.ws()
+                
+                # Получаем последние цены из child свечей
+                last_prices = {}
+                last_xs = {}
+                for s in self.symbols:
+                    child_candles = child_candles_all.get(s, [])
+                    if j < len(child_candles):
+                        last_row = child_candles[j]
+                        last_prices[s] = last_row['close']
+                        last_xs[s] = last_row['x']
+                    elif child_candles:
+                        last_candle = child_candles[-1]
+                        last_prices[s] = last_candle['close']
+                        last_xs[s] = last_candle['x']
+                    else:
+                        # Если нет child свечей, используем цену из большого таймфрейма
+                        last_prices[s] = temp_dfs_base[timeframe][s].iloc[-1]['close']
+                        last_xs[s] = temp_dfs_base[timeframe][s].iloc[-1]['x']
+                
+                # Принудительное закрытие по времени если нужно
+                if self.close_on_time:
+                    for s in self.symbols:
+                        child_candles = child_candles_all.get(s, [])
+                        if j < len(child_candles):
+                            last_row = child_candles[j]
+                            time_close = self.close_map[last_row['weekday']]
+                            if (last_row['ms'].hour > time_close[0] or 
+                                (last_row['ms'].hour == time_close[0] and last_row['ms'].minute >= time_close[1])):
+                                need_pos[s] = 0
+                        elif 'close_2330' in temp_dfs_base[timeframe][s].columns and temp_dfs_base[timeframe][s].iloc[-1]['close_2330']:
+                            need_pos[s] = 0
+                
+                # Обрабатываем изменение позиций
+                self.work_need_pos(need_pos, last_prices, last_xs)
+                
+                # Логирование для всех символов
+                if self.need_debug:
+                    for s in self.symbols:
+                        data = self.trade_data[s]
+                        with open(f'logs/child_test_log_{s}_{timeframe}.txt', 'a') as f:
+                            content = f'\n{s}: '
+                            for k in ('total', 'count', 'amount', 'total_wfees_per', 'pos', 'mp', 'fees'):
+                                content += k + ': ' + str(data[k]) + ' '
+                            f.write(content)
+
+    def _safe_type_conversion(self, value, target_dtype):
+        """
+        Безопасное преобразование типа данных
+        """
+        try:
+            if pd.isna(value):
+                return value
+            return target_dtype.type(value)
+        except (ValueError, TypeError):
+            try:
+                # Альтернативное преобразование через numpy
+                return np.array([value]).astype(target_dtype)[0]
+            except:
+                return value
+
+    def _get_child_candles(self, df: pd.DataFrame, base_candle: pd.Series) -> list:
+        """
+        Генерирует child свечи с явным преобразованием типов данных
+        """
+        candles = []
+        df = df.reset_index(drop=True)
+        
+        for i, row in df.iterrows():
+            if i == 0:
+                # Создаем новую свечу с правильными типами данных
+                candle = base_candle.copy()
+                
+                # Явно преобразуем OHLCV данные к тем же типам, что в base_candle
+                candle['open'] = self._convert_dtype(row['open'], base_candle['open'])
+                candle['high'] = self._convert_dtype(row['high'], base_candle['high'])
+                candle['low'] = self._convert_dtype(row['low'], base_candle['low'])
+                candle['close'] = self._convert_dtype(row['close'], base_candle['close'])
+                candle['volume'] = self._convert_dtype(row['volume'], base_candle['volume'])
+                candle['ms'] = row['ms']
+            else:
+                # Обновляем только OHLCV последней свечи с преобразованием типов
+                candle['close'] = self._convert_dtype(row['close'], base_candle['close'])
+                candle['volume'] = self._convert_dtype(candle['volume'] + row['volume'], base_candle['volume'])
+                candle['high'] = self._convert_dtype(max(candle['high'], row['high']), base_candle['high'])
+                candle['low'] = self._convert_dtype(min(candle['low'], row['low']), base_candle['low'])
+            
+            # Пересчитываем производные поля
+            candle['middle'] = self._convert_dtype((candle['high'] + candle['low']) / 2, base_candle.get('middle', candle['high']))
+            candle['direction'] = 1 if candle['open'] < candle['close'] else -1
+            
+            candles.append(candle.copy())
+        
+        return candles
+
+    def _convert_dtype(self, value, reference_value):
+        """
+        Преобразует значение к тому же типу, что и reference_value
+        """
+        if pd.isna(value) or pd.isna(reference_value):
+            return value
+        
+        ref_dtype = type(reference_value)
+        
+        try:
+            if ref_dtype == np.float32:
+                return np.float32(value)
+            elif ref_dtype == np.float64:
+                return np.float64(value)
+            elif ref_dtype == np.int32:
+                return np.int32(value)
+            elif ref_dtype == np.int64:
+                return np.int64(value)
+            else:
+                return ref_dtype(value)
+        except (ValueError, TypeError):
+            # Если преобразование не удалось, возвращаем как есть
+            return value
     
-    def check_child(self,timeframe='5min'):
-        ...
-    
+
+    # Какие-то проблемы
+    @duration_time
+    def check_child_lite(self, timeframe='5min'):
+        """
+        Упрощенный аналог check_strategy_v6 для класса
+        """
+        tf1 = self.timeframes[0]
+        
+        # Конвертируем в старший таймфрейм
+        big_dfs = {}
+        for s in self.symbols:
+            df_main = self.charts[tf1][s].copy()
+            big_dfs[s] = convert_timeframe(df_main, timeframe)
+        
+        # Проходим по всем барам старшего таймфрейма
+        period2x = 300
+        big_dates = list(big_dfs[self.symbols[0]]['ms'])
+        
+        for i in tqdm(range(period2x, len(big_dates))):
+            current_time = big_dates[i]
+            prev_time = big_dates[i-1]
+            
+            # Окно данных для ВСЕХ таймфреймов
+            temp_dfs_base = {tf: {} for tf in self.timeframes}
+            
+            for tf in self.timeframes:
+                for s in self.symbols:
+                    if tf == timeframe:
+                        # Для целевого таймфрейма используем конвертированные данные
+                        temp_dfs_base[tf][s] = big_dfs[s].iloc[i-period2x:i].copy()
+                    else:
+                        # Для остальных таймфреймов используем оригинальные данные
+                        df_tf = self.charts[tf][s]
+                        mask = df_tf['ms'] <= current_time
+                        temp_dfs_base[tf][s] = df_tf[mask].copy()
+            
+            # Получаем минутные свечи внутри этого бара
+            child_candles_all = {}
+            for s in self.symbols:
+                df_main = self.charts[tf1][s]
+                mask = (df_main['ms'] >= prev_time) & (df_main['ms'] < current_time)
+                df_child = df_main[mask].copy()
+                
+                if len(df_child) > 0:
+                    child_candles_all[s] = self._get_simple_child_candles(df_child, temp_dfs_base[timeframe][s].iloc[-1])
+                else:
+                    child_candles_all[s] = []
+            
+            # Обрабатываем каждую минутную свечу
+            max_candles = max(len(candles) for candles in child_candles_all.values()) if child_candles_all else 0
+            
+            for j in range(max_candles):
+                # Копируем базовые данные для всех таймфреймов
+                temp_dfs = {tf: {} for tf in self.timeframes}
+                for tf in self.timeframes:
+                    for s in self.symbols:
+                        temp_dfs[tf][s] = temp_dfs_base[tf][s].copy()
+                
+                # Обновляем последний бар только в ЦЕЛЕВОМ таймфрейме
+                for s in self.symbols:
+                    if j < len(child_candles_all[s]) and timeframe in temp_dfs and s in temp_dfs[timeframe]:
+                        child_candle = child_candles_all[s][j]
+                        df_target = temp_dfs[timeframe][s]
+                        
+                        if len(df_target) > 0:
+                            # Создаем новую строку с правильными типами
+                            new_row = df_target.iloc[-1:].copy()
+                            for col in child_candle.index:
+                                if col in new_row.columns:
+                                    new_row[col] = self._safe_assign(child_candle[col], new_row[col].dtype)
+                            
+                            # Заменяем последнюю строку
+                            temp_dfs[timeframe][s] = pd.concat([df_target.iloc[:-1], new_row], ignore_index=True)
+                
+                # Стандартная логика
+                poss = self._check_position()
+                self.ws.preprocessing(temp_dfs, poss)
+                need_pos = self.ws()
+                
+                last_prices = {}
+                last_xs = {}
+                for s in self.symbols:
+                    if j < len(child_candles_all[s]):
+                        last_row = child_candles_all[s][j]
+                        last_prices[s] = last_row['close']
+                        last_xs[s] = last_row['x']
+                    else:
+                        last_prices[s] = temp_dfs_base[timeframe][s].iloc[-1]['close']
+                        last_xs[s] = temp_dfs_base[timeframe][s].iloc[-1]['x']
+                
+                if self.close_on_time:
+                    for s in self.symbols:
+                        if j < len(child_candles_all[s]):
+                            last_row = child_candles_all[s][j]
+                            time_close = self.close_map[last_row['weekday']]
+                            if (last_row['ms'].hour > time_close[0] or 
+                                (last_row['ms'].hour == time_close[0] and last_row['ms'].minute >= time_close[1])):
+                                need_pos[s] = 0
+                
+                self.work_need_pos(need_pos, last_prices, last_xs)
+
+    def _get_simple_child_candles(self, df: pd.DataFrame, base_candle: pd.Series) -> list:
+        """
+        Простая генерация child свечей
+        """
+        candles = []
+        df = df.reset_index(drop=True)
+        
+        for i, row in df.iterrows():
+            if i == 0:
+                candle = base_candle.copy()
+                candle['open'] = row['open']
+                candle['high'] = row['high'] 
+                candle['low'] = row['low']
+                candle['close'] = row['close']
+                candle['volume'] = row['volume']
+                candle['ms'] = row['ms']
+            else:
+                candle['close'] = row['close']
+                candle['volume'] += row['volume']
+                candle['high'] = max(candle['high'], row['high'])
+                candle['low'] = min(candle['low'], row['low'])
+            
+            candle['middle'] = (candle['high'] + candle['low']) / 2
+            candle['direction'] = 1 if candle['open'] < candle['close'] else -1
+            
+            candles.append(candle.copy())
+        
+        return candles
+
+    def _safe_assign(self, value, target_dtype):
+        """
+        Простое безопасное присвоение с преобразованием типа
+        """
+        try:
+            return target_dtype.type(value)
+        except:
+            return value
+        
     def print_statistics(self, symbol):
         """Печать статистики по торгам"""
         if symbol not in self.symbols:
@@ -585,4 +916,8 @@ class TestTrader(TraderBase):
         # if td['count'] > 0:
         #     avg_trade = td['total'] / td['count']
         #     print(f"Средний PnL на сделку: {avg_trade:.2f}")
-    
+    #draw funcs
+    def plot_equity(self,symbol):
+        plt.plot(self.trade_data[symbol]['equity'],color='r')
+        plt.plot(self.trade_data[symbol]['equity_fee'],color='b')
+        plt.show()

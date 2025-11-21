@@ -81,18 +81,24 @@ tt1 = TestTrader(
 # # tt1.print_statistics('MMZ5')
 
 # # tt1.reload_data()
-tt1.check_fast()
-# # Печать статистики
-tt1.print_statistics('CNYRUBF')
-tt1.print_statistics('CRZ5')
-tt1.print_statistics('IMOEXF')
-tt1.print_statistics('MMZ5')
-
-# tt1.reload_data()
-# tt1.check_fast_vectorized()
-# # Печать статистики
+# tt1.check_fast()
+# # # Печать статистики
+# tt1.print_statistics('CNYRUBF')
+# tt1.print_statistics('CRZ5')
 # tt1.print_statistics('IMOEXF')
 # tt1.print_statistics('MMZ5')
+
+tt1.reload_data()
+tt1.check_window_fast()
+# tt1.check_fast_vectorized()
+# # Печать статистики
+tt1.print_statistics('IMOEXF')
+tt1.print_statistics('MMZ5')
+tt1.plot_equity('IMOEXF')
+
+
+
+
 
 # tt1.reload_data()
 # tt1.check_fast_cached()
