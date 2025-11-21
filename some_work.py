@@ -35,8 +35,8 @@ tt1 = TestTrader(
         WSS,    
         {
             'amount_lvl': 4,
-            'per_step':1,
-            'grid_dir': 1,
+            'per_step':0.1,
+            'grid_dir': 0,
             'keep':False,
             'reset_n':2
     }

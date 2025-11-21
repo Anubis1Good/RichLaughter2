@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional, Union
 from traders.TraderBase import TraderBase
 from wss.WSBase import WSBase
+from utils.processing.add_vtb_fee_fut import get_func_vtb_fee
 
 def duration_time(func):
     def wrapper(self, *args, **kwargs):
@@ -41,40 +42,44 @@ class TestTrader(TraderBase):
         (60,5,1) ❌
         """
         super().__init__(symbols, timeframes, quantity, ws, sufix_debug, need_debug)
-        self.fee = fee
-        self.charts = charts
+        self.fee = fee # не в процентах, а в долях от 1
+        self.init_charts = charts
+        self.charts = {tf: {} for tf in timeframes}
         self.read_dfs()
         self.get_total_time_range()
         self.reload_data()
-        self.fee_one_p = (fee / 2) * 100
+        self.fee_one_p = fee * 100 #в процентах
         self.close_on_time = close_on_time
         self.close_map = close_map
+        self.vtb_fee_funcs = {s: get_func_vtb_fee(s) for s in symbols}
 
     def reload_data(self):
         self.trade_data = {
             symbol : {
-                'total':0, #сумма без комиссии (возможно стоит убрать уже есть в equity)
+                'total':0,
                 'count':0, #количество разворотов
                 'amount':0, #размер сделок
                 'fees': 0, #комиссия в ???
                 'total_wfees_per':0, #прибыль в процентах с учетом комиссии
                 'equity':[0], #динамика дохода
                 'equity_fee':[0], #динамика дохода с комиссией
+                # 'equity_vtb':[0], #динамика дохода с комиссией vtb
+                'step_eq_fee':[0], #equity каждый шаг
+                'step_eq_vtb':[0], #equity каждый шаг
                 'pos':0, #текущая позиция
                 'mp':0, #текущая цена
                 'o_longs':[], #входы в лонг
                 'o_shorts':[], #входы в шорт
                 'c_longs':[], #закрытие лонгов
                 'c_shorts':[], #закрытие шортов
-                # добавить учет комиссии для втб
             } for symbol in self.symbols
         }
         self.open_fee = {symbol:0 for symbol in self.symbols}
 
     def read_dfs(self):
-        for t in self.charts:
-            for s in self.charts[t]:
-                path_df = self.charts[t][s]
+        for t in self.init_charts:
+            for s in self.init_charts[t]:
+                path_df = self.init_charts[t][s]
                 if path_df.endswith('.parquet'):
                     df = pd.read_parquet(path_df)
                 else:
@@ -138,44 +143,48 @@ class TestTrader(TraderBase):
                 dfs[tf][s] = self.ws.last_dfs[tf][s].copy(deep=True)
         return dfs
 
+    # ==========================================================================
+
     def work_need_pos(self, need_pos, last_prices, last_xs):
         for s in self.symbols:
-            if need_pos[s] != self.trade_data[s]['pos']:
-                self._process_position_change(s, need_pos[s], last_prices[s], last_xs[s])
+            if need_pos[s] is not None: #новая позиция не None
+                if need_pos[s] != self.trade_data[s]['pos']: #новая позиция не равна старой
+                    self._process_position_change(s, need_pos[s], last_prices[s], last_xs[s])
+                    self.trade_data[s]['step_eq_vtb'].append(self.vtb_fee_funcs[s](self.trade_data[s]['equity'][-1],self.trade_data[s]['amount']))
+            else:
+                self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
+            self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
+            self.trade_data[s]['total'] += self.trade_data[s]['equity'][-1]
 
     def _process_position_change(self, symbol, new_pos, new_price, last_x):
         """Основной метод обработки изменения позиции"""
         old_pos = self.trade_data[symbol]['pos']
-        if new_pos is not None:
-            delta_pos = new_pos - old_pos
-            
-            if delta_pos > 0:
-                self._handle_positive_delta(symbol, new_pos, old_pos, new_price, last_x)
-            elif delta_pos < 0:
-                self._handle_negative_delta(symbol, new_pos, old_pos, new_price, last_x)
-            if delta_pos != 0:
-                self.trade_data[symbol]['pos'] = new_pos
+        delta_pos = new_pos - old_pos #the delta should be
+        if delta_pos > 0:
+            self._handle_positive_delta(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
+        else:
+            self._handle_negative_delta(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
+        # vvv ????
+        self.trade_data[symbol]['pos'] = new_pos
 
-    def _handle_positive_delta(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_positive_delta(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка увеличения позиции (delta_pos > 0)"""
         if old_pos >= 0:  # add_long или open_long
-            self._handle_long_operations(symbol, new_pos, old_pos, new_price, last_x)
+            self._handle_long_operations(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
         else:  # close_short (pos < 0)
-            self._handle_short_closing(symbol, new_pos, old_pos, new_price, last_x)
+            self._handle_short_closing(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
 
-    def _handle_negative_delta(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_negative_delta(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка уменьшения позиции (delta_pos < 0)"""
         if old_pos <= 0:  # add_short или open_short
-            self._handle_short_operations(symbol, new_pos, old_pos, new_price, last_x)
+            self._handle_short_operations(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
         else:  # close_long (pos > 0)
-            self._handle_long_closing(symbol, new_pos, old_pos, new_price, last_x)
+            self._handle_long_closing(symbol, new_pos, old_pos, new_price, last_x,delta_pos)
 
-    def _handle_long_operations(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_long_operations(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка операций с лонгами (открытие/добавление)"""
-        delta_pos = new_pos - old_pos
-        feei = (self.fee * new_price) / 100
-        cur_feei = feei * delta_pos
-        
+        feei = self.fee * new_price #fee by one
+        cur_feei = feei * delta_pos #full fee
         if old_pos == 0:  # open_long
             self.trade_data[symbol]['mp'] = new_price
             self.open_fee[symbol] = cur_feei
@@ -184,15 +193,15 @@ class TestTrader(TraderBase):
             self.trade_data[symbol]['mp'] = (old_price * old_pos + new_price * (new_pos - old_pos)) / new_pos
             self.open_fee[symbol] += cur_feei
         
-        self._update_fee_metrics(symbol, delta_pos, cur_feei)
+        self._update_fee_metrics(symbol, delta_pos, cur_feei) #what metrics???
         self.trade_data[symbol]['o_longs'].append((last_x, new_price))
         self.trade_data[symbol]['count'] += 1
         self.trade_data[symbol]['amount'] += delta_pos
 
-    def _handle_short_operations(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_short_operations(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка операций с шортами (открытие/добавление)"""
-        abs_delta_pos = abs(new_pos - old_pos)
-        feei = (self.fee * new_price) / 100
+        abs_delta_pos = abs(delta_pos)
+        feei = self.fee * new_price
         cur_feei = feei * abs_delta_pos
         
         if old_pos == 0:  # open_short
@@ -210,12 +219,11 @@ class TestTrader(TraderBase):
         self.trade_data[symbol]['count'] += 1
         self.trade_data[symbol]['amount'] += abs_delta_pos
 
-    def _handle_short_closing(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_short_closing(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка закрытия шортовой позиции"""
         old_price = self.trade_data[symbol]['mp']
         delta = old_price - new_price
         old_pos_abs = abs(old_pos)
-        delta_pos = new_pos - old_pos
         feei = (self.fee * new_price) / 100
         cur_feei = feei * abs(delta_pos)
         
@@ -226,11 +234,10 @@ class TestTrader(TraderBase):
         else:  # change_short (reduce short)
             self._reduce_short_position(symbol, new_pos, old_pos, delta, new_price, cur_feei, last_x)
 
-    def _handle_long_closing(self, symbol, new_pos, old_pos, new_price, last_x):
+    def _handle_long_closing(self, symbol, new_pos, old_pos, new_price, last_x,delta_pos):
         """Обработка закрытия лонговой позиции"""
         old_price = self.trade_data[symbol]['mp']
         delta = new_price - old_price
-        delta_pos = new_pos - old_pos
         abs_delta_pos = abs(delta_pos)
         feei = (self.fee * new_price) / 100
         cur_feei = feei * abs_delta_pos
@@ -247,7 +254,6 @@ class TestTrader(TraderBase):
         full_delta = delta * old_pos_abs
         reward = (((delta / new_price) * 100) - self.fee_one_p) * old_pos_abs
         
-        self.trade_data[symbol]['total'] += full_delta
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -263,8 +269,7 @@ class TestTrader(TraderBase):
         """Закрытие шорта и открытие лонга"""
         full_delta = delta * old_pos_abs
         reward = ((delta / new_price) * 100 * old_pos_abs) - self.fee_one_p * delta_pos
-        
-        self.trade_data[symbol]['total'] += full_delta
+
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -274,7 +279,7 @@ class TestTrader(TraderBase):
         self.trade_data[symbol]['equity_fee'].append(last_equity_fee + (full_delta - cur_feei - self.open_fee[symbol]))
         
         self.trade_data[symbol]['mp'] = new_price
-        self.open_fee[symbol] = ((self.fee * new_price) / 100) * abs(delta_pos)
+        self.open_fee[symbol] = 0
         self.trade_data[symbol]['c_shorts'].append((last_x, new_price))
         self.trade_data[symbol]['o_longs'].append((last_x, new_price))
         self.trade_data[symbol]['count'] += 1
@@ -286,7 +291,6 @@ class TestTrader(TraderBase):
         partial_delta = delta * delta_short
         reward = (((delta / new_price) * 100) - self.fee_one_p) * delta_short
         
-        self.trade_data[symbol]['total'] += partial_delta
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -309,7 +313,6 @@ class TestTrader(TraderBase):
         full_delta = delta * old_pos
         reward = (((delta / new_price) * 100) - self.fee_one_p) * old_pos
         
-        self.trade_data[symbol]['total'] += full_delta
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -326,7 +329,6 @@ class TestTrader(TraderBase):
         full_delta = delta * old_pos
         reward = ((delta / new_price) * 100 * old_pos) - self.fee_one_p * abs(delta_pos)
         
-        self.trade_data[symbol]['total'] += full_delta
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -348,7 +350,6 @@ class TestTrader(TraderBase):
         partial_delta = delta * delta_long
         reward = (((delta / new_price) * 100) - self.fee_one_p) * delta_long
         
-        self.trade_data[symbol]['total'] += partial_delta
         self.trade_data[symbol]['total_wfees_per'] += reward
         self.trade_data[symbol]['fees'] += cur_feei
         
@@ -369,7 +370,7 @@ class TestTrader(TraderBase):
         self.trade_data[symbol]['total_wfees_per'] -= self.fee_one_p * abs(delta_pos)
         self.trade_data[symbol]['fees'] += cur_feei
 
-
+    # ==========================================================================
 
     @duration_time
     def check_fast_old(self):
@@ -563,73 +564,25 @@ class TestTrader(TraderBase):
         td = self.trade_data[symbol]
         
         print(f"\n=== СТАТИСТИКА ДЛЯ {symbol} ===")
-        print(f"Всего сделок: {td['count']}")
-        print(f"Общий PnL: {td['total']:.2f}")
-        print(f"Комиссия ВТБ: {(len(td['o_longs']) + len(td['o_shorts']))*2}")
+        print(f"Прибыль ВТБ: {td['step_eq_vtb'][-1]}")
+        print(f"Всего сделок: {td['amount']}")
+        print(f"Общий PnL: {td['equity'][-1]:.2f}")
+        print(f"Комиссия ВТБ: {td['amount']*2}")
         print(f"Комиссии: {td['fees']:.2f}")
-        print(f"PnL с комиссиями (%): {td['total_wfees_per']:.2f}%")
+        # print(f"PnL с комиссиями (%): {td['total_wfees_per']:.2f}%")
         
-        if td['equity']:
-            final_equity = td['equity'][-1]
-            final_equity_fee = td['equity_fee'][-1]
-            print(f"Финальное эквити (без комиссий): {final_equity:.2f}")
-            print(f"Финальное эквити (с комиссиями): {final_equity_fee:.2f}")
+        # if td['equity']:
+        #     final_equity = td['equity'][-1]
+        #     final_equity_fee = td['equity_fee'][-1]
+        #     print(f"Финальное эквити (без комиссий): {final_equity:.2f}")
+        #     print(f"Финальное эквити (с комиссиями): {final_equity_fee:.2f}")
         
-        print(f"Открыто лонгов: {len(td['o_longs'])}")
-        print(f"Открыто шортов: {len(td['o_shorts'])}")
-        print(f"Закрыто лонгов: {len(td['c_longs'])}")
-        print(f"Закрыто шортов: {len(td['c_shorts'])}")
-        # Рассчитываем дополнительную статистику
-        if td['count'] > 0:
-            avg_trade = td['total'] / td['count']
-            print(f"Средний PnL на сделку: {avg_trade:.2f}")
+        # print(f"Открыто лонгов: {len(td['o_longs'])}")
+        # print(f"Открыто шортов: {len(td['o_shorts'])}")
+        # print(f"Закрыто лонгов: {len(td['c_longs'])}")
+        # print(f"Закрыто шортов: {len(td['c_shorts'])}")
+        # # Рассчитываем дополнительную статистику
+        # if td['count'] > 0:
+        #     avg_trade = td['total'] / td['count']
+        #     print(f"Средний PnL на сделку: {avg_trade:.2f}")
     
-    def compare_all_symbols(self, figsize=(12, 8)):
-        """Сравнительная визуализация всех символов"""
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize)
-        
-        # График финального эквити
-        symbols = []
-        final_equities = []
-        final_equities_fee = []
-        
-        for symbol in self.symbols:
-            td = self.trade_data[symbol]
-            if td['equity'] and td['equity_fee']:
-                symbols.append(symbol)
-                final_equities.append(td['equity'][-1])
-                final_equities_fee.append(td['equity_fee'][-1])
-        
-        x = range(len(symbols))
-        width = 0.35
-        
-        ax1.bar([i - width/2 for i in x], final_equities, width, label='Без комиссий', alpha=0.7)
-        ax1.bar([i + width/2 for i in x], final_equities_fee, width, label='С комиссиями', alpha=0.7)
-        
-        ax1.set_ylabel('Финальное эквити')
-        ax1.set_title('Сравнение финального эквити по символам')
-        ax1.set_xticks(x)
-        ax1.set_xticklabels(symbols, rotation=45)
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
-        
-        # График общего PnL
-        totals = [self.trade_data[symbol]['total'] for symbol in symbols]
-        ax2.bar(symbols, totals, alpha=0.7, color='orange')
-        ax2.set_ylabel('Общий PnL')
-        ax2.set_title('Общий PnL по символам')
-        ax2.grid(True, alpha=0.3)
-        ax2.tick_params(axis='x', rotation=45)
-        
-        plt.tight_layout()
-        plt.show()
-        
-        # Печатаем общую статистику
-        print("\n=== ОБЩАЯ СТАТИСТИКА ===")
-        total_pnl = sum(self.trade_data[symbol]['total'] for symbol in self.symbols)
-        total_fees = sum(self.trade_data[symbol]['fees'] for symbol in self.symbols)
-        total_trades = sum(self.trade_data[symbol]['count'] for symbol in self.symbols)
-        
-        print(f"Общий PnL всех символов: {total_pnl:.2f}")
-        print(f"Общие комиссии: {total_fees:.2f}")
-        print(f"Всего сделок: {total_trades}")

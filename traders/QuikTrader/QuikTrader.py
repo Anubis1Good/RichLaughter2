@@ -1,6 +1,6 @@
 import pandas as pd
 import traceback
-from time import sleep
+from time import sleep,time
 from datetime import datetime
 from typing import Dict, List
 from traders.TraderBase import TraderBase
@@ -43,6 +43,8 @@ class QuikTrader(TraderBase):
         self.last_kill_order_id = {s: None for s in self.symbols}
         self.orders_start = {s: False for s in self.symbols}
         self.symbol_range = range(len(self.symbols))
+        self.time_forgot_order = 0
+        self.first_forgot = False
 
 
     def start_info(self):
@@ -210,18 +212,27 @@ class QuikTrader(TraderBase):
                 return
             else:
                 if not self._check_last_order():
-                    return
+                    if not self.first_forgot:
+                        self.time_forgot_order = time()
+                        self.first_forgot = True
+                        return
+                    else:
+                        delta = time() - self.time_forgot_order
+                        if delta < 1000:
+                            return
+                        else:
+                            self.first_forgot = False
                 dfs = self._get_dfs()
                 poss = self._check_position_on_order()
                 self.ws.preprocessing(dfs,poss)
                 need_pos = self.ws()
-                if time_mode == -1: #close_all
+                if time_mode == -1 and self.close_on_time: #close_all
                     need_pos = {s: 0 for s in self.symbols}
                 for i in self.symbol_range:
                     symbol = self.symbols[i]
                     npos = need_pos[symbol]
                     pos = poss[symbol]['pos']
-                    if time_mode == -2: #only close
+                    if time_mode == -2 and self.close_on_time: #only close
                         if npos is not None:
                             if abs(npos) > abs(pos):
                                 npos = pos

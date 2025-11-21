@@ -28,8 +28,8 @@ htmlcov/
 
 # Your existing entries
 data_for_tests/
+test_results/
 TestDeepTests/
-TestResults/
 TestNewResults/
 logs/
 logsOffTest/

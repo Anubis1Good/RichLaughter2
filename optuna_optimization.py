@@ -1,273 +1,303 @@
 import os
-import matplotlib.pyplot as plt
 import pandas as pd
 import optuna
 import traceback
-import psutil
 import multiprocessing as mp
 from tqdm import tqdm
 from multiprocessing import Pool
 from functools import partial
-# from strategies.test_strategies.check import check_strategy_v3
-# from strategies.test_strategies.check import check_strategy_realistic_v1
-# from Loader.BitgetLoader import bitget_loader
-from utils.processing.add_vtb_fee_fut import get_func_vtb_fee
-from utils.df_utils.convert_timeframe import convert_timeframe
-phys_cores = psutil.cpu_count(logical=False) 
+import matplotlib.pyplot as plt
 
-save_cores = 3
-close_2330 = True
-new_timeframe = None
-# new_timeframe = '5min'
-new_timeframe = '30min'
-reverse_test = False
-# reverse_test = True
-# feature_optimization = 'total_abs_fee'
-top_limit=600
-# bottom_limit=150
-bottom_limit=100
-def check_strategy_v3():
-    ...
-# # Целевая функция для Optuna
-def objective(trial, df, ws, param_options, fee=0.0002):
-    """
-    strategy_class: класс стратегии (например, PTA4_U3)
-    param_options: кортеж с вариантами параметров ((5,10,15,...), ...)
-    """
-    df = df.copy()
-    params = []
-    for i, options in enumerate(param_options):
-        param_name = f"param_{i}"
+from traders.TestTrader.TestTrader import TestTrader
+
+phys_cores = mp.cpu_count()
+save_cores = 2
+
+class TestTraderOptimizer:
+    def __init__(self, main_folder='test_results\optuna_optimization', top_limit=600, bottom_limit=100):
+        self.main_folder = main_folder
+        self.top_limit = top_limit
+        self.bottom_limit = bottom_limit
         
-        # Категориальные параметры (строки)
-        if isinstance(options[0], str):
-            params.append(trial.suggest_categorical(param_name, options))
-            continue
+        if not os.path.exists(main_folder):
+            os.makedirs(main_folder)
+        optuna.logging.disable_default_handler()
+        optuna.logging.set_verbosity(optuna.logging.ERROR)
+    
+    def objective(self, trial, config):
+        """
+        trial: optuna trial
+        config: конфигурация для TestTrader
+        """
+        # 1. Подбираем параметры стратегии
+        ws_params = {}
+        for param_name, options in config['ws_params_options'].items():
+            # Сортируем options для корректного вычисления шага
+            sorted_options = sorted(options)
             
-        # Числовые параметры
-        unique_steps = {options[j+1]-options[j] for j in range(len(options)-1)}
+            if isinstance(sorted_options[0], str):
+                ws_params[param_name] = trial.suggest_categorical(param_name, sorted_options)
+            elif isinstance(sorted_options[0], int):
+                # Проверяем, равномерный ли шаг
+                if len(sorted_options) > 1:
+                    steps = [sorted_options[i+1] - sorted_options[i] for i in range(len(sorted_options)-1)]
+                    unique_steps = set(steps)
+                    
+                    if len(unique_steps) == 1:  # Все шаги одинаковые
+                        step = abs(unique_steps.pop())  # Берем абсолютное значение
+                        ws_params[param_name] = trial.suggest_int(
+                            param_name, 
+                            min(sorted_options), 
+                            max(sorted_options), 
+                            step=step
+                        )
+                    else:  # Неравномерные шаги
+                        ws_params[param_name] = trial.suggest_int(
+                            param_name, 
+                            min(sorted_options), 
+                            max(sorted_options)
+                        )
+                else:  # Только одно значение
+                    ws_params[param_name] = sorted_options[0]
+            else:  # float
+                # Проверяем, равномерный ли шаг
+                if len(sorted_options) > 1:
+                    steps = [sorted_options[i+1] - sorted_options[i] for i in range(len(sorted_options)-1)]
+                    unique_steps = set(steps)
+                    
+                    if len(unique_steps) == 1:  # Все шаги одинаковые
+                        step = abs(unique_steps.pop())  # Берем абсолютное значение
+                        ws_params[param_name] = trial.suggest_float(
+                            param_name, 
+                            min(sorted_options), 
+                            max(sorted_options), 
+                            step=step
+                        )
+                    else:  # Неравномерные шаги
+                        ws_params[param_name] = trial.suggest_float(
+                            param_name, 
+                            min(sorted_options), 
+                            max(sorted_options)
+                        )
+                else:  # Только одно значение
+                    ws_params[param_name] = sorted_options[0]
         
-        if len(unique_steps) == 1:  # Все шаги одинаковые
-            step = unique_steps.pop()
-            if isinstance(step, int):
-                params.append(trial.suggest_int(param_name, min(options), max(options), step=step))
-            else:
-                params.append(trial.suggest_float(param_name, min(options), max(options), step=step))
-        else:  # Неравномерные шаги
-            if all(isinstance(x, int) for x in options):
-                params.append(trial.suggest_int(param_name, min(options), max(options)))
-            else:
-                params.append(trial.suggest_float(param_name, min(options), max(options)))
+        # Остальной код без изменений...
+        try:
+            trader = TestTrader(
+                symbols=config['symbols'],
+                timeframes=config['timeframes'],
+                quantity=config['quantity'],
+                ws=(config['ws_class'], ws_params),
+                charts=config['charts'],
+                fee=config.get('fee', 0.0002),
+                close_on_time=config.get('close_on_time', False),
+                need_debug=False
+            )
+            trader.check_fast()
+            
+            total_trades = sum([trader.trade_data[s]['amount'] for s in trader.trade_data])
+            
+            if not (self.bottom_limit <= total_trades <= self.top_limit):
+                raise optuna.TrialPruned()
+            
+            total_vtb_profit = sum([trader.trade_data[s]['step_eq_vtb'][-1] for s in trader.trade_data])
+            
+            return total_vtb_profit
+            
+        except Exception as e:
+            print(f"Error in trial: {str(e)}")
+            raise optuna.TrialPruned()
     
-    # 2. Создаём стратегию с текущими параметрами
-
-    strategy = ws(
-        "BTCUSDT", "1m", "usdt-futures",1,
-        *params
-    )
-    df = strategy.preprocessing(df)
-    # 3. Запускаем бэктест
-    # result = check_strategy_realistic_v1(df, strategy,fee,close_2330)[0]
-    result = check_strategy_v3(df, strategy,fee,close_2330)[0]
-    if not bottom_limit <= result['count'] <= top_limit:
-        raise optuna.TrialPruned()
-    
-    # 4. Возвращаем метрику (например, Sharpe Ratio)
-    return result['total_abs_fee']
-
-def get_optimization_results_table(study, df, strategy_class, param_options, need_plot=False, ticker='MXI',fee=0.0002):
-    results = []
-    name_bot = str(strategy_class.__name__)
-    images_folder = os.path.join(main_folder, name_bot, ticker, 'Images')
-    file_folder = os.path.join(main_folder, name_bot, ticker)
-    if not os.path.exists(images_folder):
-        os.makedirs(images_folder)
-    completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
-    n_top = 25 if len(completed_trials) > 25 else len(completed_trials)
-
-    top_trials = sorted(completed_trials, key=lambda x: x.value, reverse=True)[:n_top]
-    
-    if not top_trials:
-        return pd.DataFrame()
-    
-    for trial in top_trials:
-
-        # Собираем параметры в правильном порядке
-        params = []
-        param_values = []
-        for i, options in enumerate(param_options):
-            param_name = f"param_{i}"
-            param_value = trial.params[param_name]
-            if isinstance(param_value,float):
-                param_value = round(param_value,2)
-            params.append(param_value)
-            param_values.append(str(param_value))  # Для имени файла
-
-        # Создаем стратегию
-        strategy = strategy_class("BTCUSDT","1m", "usdt-futures", 1,*params)
-        processed_df = strategy.preprocessing(df.copy())
+    def optimize_configuration(self, config, n_trials=100, n_jobs=1):
+        """
+        Оптимизация одной конфигурации
+        """
+        study = optuna.create_study(
+            direction="maximize",
+            sampler=optuna.samplers.TPESampler()
+        )
         
-        # Запускаем бэктест
-        # trades, eq, eq_f,_,_,_ = check_strategy_realistic_v1(processed_df, strategy,fee,close_2330)
-        trades, eq, eq_f = check_strategy_v3(processed_df, strategy,fee,close_2330)
+        objective_func = lambda trial: self.objective(trial, config)
         
-        # Формируем имя файла
-        name_doc = f"{ticker}_{name_bot}"
-        name_file = f"{name_doc}_{'_'.join(param_values)}"
-        if name_bot.startswith('Rev'):
-            params_tuple = f"(get_rws({name_bot[3:]}),({','.join(param_values)},)),"
-        else:
-            params_tuple = f"({name_bot},({','.join(param_values)},)),"
-        vtb_twf_func = get_func_vtb_fee(ticker.split('_')[0])
-        # Добавляем результаты
-        result_row = {
-            # "Trial": trial.number,
-            "name": name_file,
-            "ws":params_tuple,
-            "vtb": vtb_twf_func(trades["total"],trades["count"])
-            # "Total": trades["total"],
-            # "TradesCount": trades["count"],
-            # "TotalFeePer": trades["total_fee_per"],  
-        }
-        result_row = result_row | trades
-        # Добавляем параметры в результат
-        result_row['origin'] = ticker
-        for i, param_value in enumerate(params):
-            result_row[f"Param_{i}"] = param_value
-        results.append(result_row)
-
-        # Сохраняем график если нужно
-        if need_plot:
-            full_name_img = os.path.join(images_folder, f"{name_file}.png")
-            plt.figure(figsize=(12, 6))
-            plt.plot(eq, color='red', label='Equity')
-            plt.plot(eq_f, color='blue', label='Equity with Fees')
-            plt.title(f"{name_bot} (Trial {trial.number})")
-            plt.legend()
-            plt.savefig(full_name_img, bbox_inches='tight')
-            plt.close()
+        study.optimize(objective_func, n_trials=n_trials, n_jobs=n_jobs)
+        
+        # Сохраняем результаты
+        self.save_optimization_results(study, config)
+        
+        return study
     
-    # Сортируем результаты
-    df_results = pd.DataFrame(results).sort_values('total_abs_fee', ascending=False)
-    df_results = df_results.drop_duplicates(subset=['total_abs_fee'])
-    df_results = df_results.reset_index(drop=True)
-    full_name_doc = os.path.join(file_folder, name_doc + '.xlsx')
-    with pd.ExcelWriter(full_name_doc, engine='xlsxwriter') as writer:  
-        df_results.to_excel(writer, sheet_name='total')
-        worksheet = writer.sheets['total']
-        for i, col in enumerate(df_results.columns,start=1):
-            width = max(df_results[col].apply(lambda x: len(str(x))).max(), len(col))
-            worksheet.set_column(i, i, width)
-    return df_results
+    def save_optimization_results(self, study, config):
+        """Сохранение результатов оптимизации"""
+        strategy_name = config['ws_class'].__name__
+        symbol_name = "_".join(config['symbols'])
+        
+        # Папки для результатов
+        strategy_folder = os.path.join(self.main_folder, strategy_name, symbol_name)
+        images_folder = os.path.join(strategy_folder, "Images")
+        os.makedirs(images_folder, exist_ok=True)
+        
+        # Топ trials
+        completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+        top_trials = sorted(completed_trials, key=lambda x: x.value, reverse=True)[:25]
+        
+        results = []
+        for trial in top_trials:
+            # Собираем параметры
+            params = {name: trial.params[name] for name in config['ws_params_options'].keys()}
+            
+            # Создаем стратегию с лучшими параметрами для детального анализа
+            trader = TestTrader(
+                symbols=config['symbols'],
+                timeframes=config['timeframes'],
+                quantity=config['quantity'],
+                ws=(config['ws_class'], params),
+                charts=config['charts'],
+                fee=config.get('fee', 0.0002),
+                close_on_time=config.get('close_on_time', False),
+                need_debug=False
+            )
+            
+            # Запускаем тестирование
+            trader.check_fast()
+            
+            # Собираем детальную статистику
+            detailed_stats = {}
+            total_trades = 0
+            
+            for symbol in config['symbols']:
+                td = trader.trade_data[symbol]
+                symbol_trades = td['amount']
+                total_trades += symbol_trades
+                
+                detailed_stats[f"{symbol}_vtb_profit"] = td['step_eq_vtb'][-1]
+                detailed_stats[f"{symbol}_total_trades"] = symbol_trades
+                detailed_stats[f"{symbol}_total_pnl"] = td['equity'][-1]
+                detailed_stats[f"{symbol}_fees"] = td['fees']
+                detailed_stats[f"{symbol}_total_wfees_per"] = td['total_wfees_per']
+            
+            # Формируем результат
+            result_row = {
+                "trial_number": trial.number,
+                "total_vtb_profit": trial.value,
+                "total_trades": total_trades,
+                "strategy": f"({strategy_name}, {params})",
+                "symbols": ", ".join(config['symbols']),
+            }
+            result_row.update(params)
+            result_row.update(detailed_stats)
+            
+            results.append(result_row)
+            
+            # Сохраняем график equity curve (для первого символа)
+            if config['symbols']:
+                main_symbol = config['symbols'][0]
+                equity_data = trader.trade_data[main_symbol]['equity_fee']
+                if len(equity_data) > 1:
+                    plt.figure(figsize=(12, 6))
+                    plt.plot(equity_data)
+                    plt.title(f"{strategy_name} - Trial {trial.number} - Trades: {total_trades} - Profit: {trial.value:.2f}")
+                    plt.savefig(os.path.join(images_folder, f"trial_{trial.number}.png"))
+                    plt.close()
+        
+        # Сохраняем в Excel
+        if results:
+            df_results = pd.DataFrame(results)
+            excel_path = os.path.join(strategy_folder, f"results_{symbol_name}.xlsx")
+            
+            with pd.ExcelWriter(excel_path, engine='xlsxwriter') as writer:
+                df_results.to_excel(writer, sheet_name='Results', index=False)
+                worksheet = writer.sheets['Results']
+                for i, col in enumerate(df_results.columns):
+                    width = max(df_results[col].astype(str).apply(len).max(), len(col))
+                    worksheet.set_column(i, i, width)
+            
+            print(f"Saved results to {excel_path}")
+        
+        return results
 
-def optimization_optuna(raw_file,strategy_config,n_trials=100,n_jobs=1,need_plot=False,fee=0.0002):
-    sep = '\\' if '\\' in raw_file else '/'
-    variant_name = raw_file.split(sep)[-1]
-    variant_name = variant_name.split('_')
-    variant_name = variant_name[0]+'_'+variant_name[1]
-    if raw_file.endswith('.parquet'):
-        df = pd.read_parquet(raw_file)
-    else:
-        df = pd.read_csv(raw_file)
-    if new_timeframe:
-        df = convert_timeframe(df,new_timeframe)
-    study = optuna.create_study(direction="maximize")
-    # # Оптимизируем (n_trials=100, можно увеличить)
-    study.optimize(lambda trial: objective(trial, df,*strategy_config,fee), n_trials=n_trials,n_jobs=n_jobs)
-
-    res = get_optimization_results_table(study,df,strategy_config[0],strategy_config[1],need_plot,variant_name,fee)
-    return res
-
-main_folder = 'TestNewResults/Optuna'
-if not os.path.exists(main_folder):
-    os.makedirs(main_folder)
-optuna.logging.disable_default_handler()
-optuna.logging.set_verbosity(optuna.logging.ERROR)
-
-
-def process_file(raw_file, part, n_trials, n_jobs, need_plot, min_fee):
-    """Обработка одного файла в отдельном процессе"""
+def process_single_config(config, n_trials=100, n_jobs=1, top_limit=600, bottom_limit=100):
+    """Обработка одной конфигурации в отдельном процессе"""
     try:
-        print(f"\nProcessing {os.path.basename(raw_file)}")
-        optimization_optuna(raw_file, part, n_trials, n_jobs, need_plot, min_fee)
-        return True
-    except Exception as err:
-        traceback.print_exc()
-        print(f"\nError processing {os.path.basename(raw_file)}: {str(err)}")
-        return False
-
-def process_group(part, test_folder, n_trials, n_jobs, need_plot, min_fee):
-    """Параллельная обработка группы файлов"""
-    print(f"\nStarting processing for {part[0]}")
-    
-    # Получаем список файлов для обработки
-    try:
-        files = [os.path.join(test_folder, f) for f in os.listdir(test_folder) 
-                if os.path.isfile(os.path.join(test_folder, f))]
+        optimizer = TestTraderOptimizer(top_limit=top_limit, bottom_limit=bottom_limit)
+        
+        strategy_name = config['ws_class'].__name__
+        symbol_name = "_".join(config['symbols'])
+        print(f"Optimizing {strategy_name} for {symbol_name} (trades limit: {bottom_limit}-{top_limit})")
+        
+        study = optimizer.optimize_configuration(
+            config=config,
+            n_trials=n_trials,
+            n_jobs=n_jobs
+        )
+        
+        # Статистика по прогонам
+        completed_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.COMPLETE]
+        pruned_trials = [t for t in study.trials if t.state == optuna.trial.TrialState.PRUNED]
+        
+        print(f"Completed {strategy_name} for {symbol_name}. "
+              f"Best value: {study.best_value:.2f}, "
+              f"Completed: {len(completed_trials)}, "
+              f"Pruned: {len(pruned_trials)}")
+        
+        return study
+        
     except Exception as e:
-        print(f"Error reading directory {test_folder}: {str(e)}")
-        return 0
+        print(f"Error optimizing {config['ws_class'].__name__} for {config['symbols']}: {str(e)}")
+        traceback.print_exc()
+        return None
 
-    if not files:
-        print("No files found in directory")
-        return 0
-
-    # Настраиваем количество процессов
-    num_processes = min(max(1, phys_cores - save_cores), len(files))
-    print(f"Using {num_processes} processes for {len(files)} files")
-
-    # Создаем worker функцию с фиксированными параметрами
-    worker = partial(process_file,
-                    part=part,
+def main():
+    from work_inits.optuna_configs import optimization_configs
+    # Настройки лимитов
+    top_limit = 1000
+    bottom_limit = 100
+    # Пример конфигураций для оптимизации
+    
+    n_trials = 50
+    n_jobs = 3
+    
+    # Параллельная обработка конфигураций
+    num_processes = min(phys_cores - save_cores, len(optimization_configs))
+    
+    print(f"Starting optimization of {len(optimization_configs)} configurations")
+    print(f"Trade limits: {bottom_limit}-{top_limit} trades")
+    print(f"Using {num_processes} processes")
+    
+    worker = partial(process_single_config, 
                     n_trials=n_trials,
                     n_jobs=n_jobs,
-                    need_plot=need_plot,
-                    min_fee=min_fee)
-
-    # Обрабатываем файлы параллельно
-    success_count = 0
+                    top_limit=top_limit,
+                    bottom_limit=bottom_limit)
+    
     with Pool(processes=num_processes) as pool:
-        try:
-            # Используем imap_unordered для более эффективной работы
-            for result in pool.imap_unordered(worker, files):
-            # for result in tqdm(pool.imap_unordered(worker, files),
-            #                 total=len(files),
-            #                 desc=f"Processing {part[0]}",
-            #                 unit="file"):
-                if result:
-                    success_count += 1
-        except Exception as e:
-            print(f"Error in multiprocessing: {str(e)}")
+        results = list(tqdm(
+            pool.imap(worker, optimization_configs),
+            total=len(optimization_configs),
+            desc="Optimizing configurations"
+        ))
+    
+    # Анализ результатов
+    successful_studies = [s for s in results if s is not None]
+    total_completed = sum(len([t for t in s.trials if t.state == optuna.trial.TrialState.COMPLETE]) 
+                         for s in successful_studies)
+    total_pruned = sum(len([t for t in s.trials if t.state == optuna.trial.TrialState.PRUNED]) 
+                      for s in successful_studies)
+    
+    print(f"\nOptimization completed!")
+    print(f"Successful: {len(successful_studies)}/{len(optimization_configs)} configurations")
+    print(f"Total trials: Completed: {total_completed}, Pruned: {total_pruned}")
 
-    print(f"\nCompleted {success_count}/{len(files)} files successfully for {part[0]}")
-    return success_count
+# Альтернативный вариант - оптимизация одной конфигурации
+def optimize_single_config(config, n_trials=100, n_jobs=1, top_limit=600, bottom_limit=100):
+    """Оптимизация одной конфигурации без multiprocessing"""
+    optimizer = TestTraderOptimizer(top_limit=top_limit, bottom_limit=bottom_limit)
+    return optimizer.optimize_configuration(config, n_trials=n_trials, n_jobs=n_jobs)
 
 if __name__ == '__main__':
-
-
-    # from Optimiztion.optimizations_groups.optuna_exp_groups import group
-    # from Optimiztion.optimizations_groups.optuna_groups import group
-
-    # group = [(get_rws(x[0]),x[1]) for x in group]
-    # test_folder = 'DataForTests\DataFromMOEX'
-    # test_folder = 'DataForTests\DataFromMoexFast'
-    # test_folder = 'DataForTests\DataFromMoexFastStock'
-    test_folder = 'DataForTests\DataFromMoexForStepTests'
-    # test_folder = 'DataForTests\DataFromMoexTemp'
-    # test_folder = 'DataForTests\DataFromBitget'
-    test_folder = 'DataForTests\DataFromBybit'
-    min_fee = 0.001
-    # min_fee: float = 0.0002
-    # min_fee: float = 0.0004
-    # min_fee: float = 0.00002
-    # min_fee: float = 0.0004
-    need_plot=True
-    # n_trials = 100
-    n_trials = 200
-    # n_trials = 500
-    n_jobs = 1
-
-
-    # for part in group:
-    #     process_group(part, test_folder, n_trials, n_jobs, need_plot, min_fee)
+    # Можно запустить так для одной конфигурации
+    # config = {...}  # ваша конфигурация
+    # study = optimize_single_config(config, n_trials=100, top_limit=600, bottom_limit=100)
     
+    # Или так для нескольких конфигураций
+    main()
