@@ -47,7 +47,7 @@ tt1 = TestTrader(
     #     'MMZ5':'data_for_tests\data_from_moex5\_5MMZ5_1_1763404355.parquet'
     #     }},
 
-    close_on_time=False
+    close_on_time=True
 
 )
 # tt1 = TestTrader(
@@ -94,7 +94,7 @@ tt1.check_window_fast()
 # # Печать статистики
 tt1.print_statistics('IMOEXF')
 tt1.print_statistics('MMZ5')
-tt1.plot_equity('IMOEXF')
+tt1.plot_chart_and_sequtity('IMOEXF')
 
 
 

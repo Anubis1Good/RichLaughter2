@@ -24,24 +24,25 @@ tt1 = TestTrader(
         WSS,    
         {
             'amount_lvl': 4,
-            'per_step':0.1,
+            'per_step':0.5,
             'grid_dir': 0,
             'keep':False,
             'reset_n':2
     }
     ),
     charts={'5min':charts},
-    close_on_time=False
+    close_on_time=True
 
 )
 
-tt1.check_child_lite()
-# tt1.check_child()
+# tt1.check_child_lite()
+tt1.check_child()
 # # # Печать статистики
 tt1.print_statistics('IMOEXF')
 tt1.print_statistics('MMZ5')
-tt1.plot_equity('IMOEXF')
-tt1.plot_equity('MMZ5')
+# tt1.plot_equity('IMOEXF')
+# tt1.plot_equity('MMZ5')
+tt1.plot_chart('MMZ5',convert_tf='5min')
 
 
 

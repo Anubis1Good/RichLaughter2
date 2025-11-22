@@ -10,6 +10,7 @@ from traders.TraderBase import TraderBase
 from wss.WSBase import WSBase
 from utils.processing.add_vtb_fee_fut import get_func_vtb_fee
 from utils.df_utils.convert_timeframe import convert_timeframe
+from utils.draw_funcs import draw_hb_chart_fast, draw_hbwv_chart
 
 def duration_time(func):
     def wrapper(self, *args, **kwargs):
@@ -153,6 +154,8 @@ class TestTrader(TraderBase):
                 if need_pos[s] != self.trade_data[s]['pos']: #новая позиция не равна старой
                     self._process_position_change(s, need_pos[s], last_prices[s], last_xs[s])
                     self.trade_data[s]['step_eq_vtb'].append(self.vtb_fee_funcs[s](self.trade_data[s]['equity'][-1],self.trade_data[s]['amount']))
+                else:
+                    self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
             else:
                 self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
             self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
@@ -468,6 +471,9 @@ class TestTrader(TraderBase):
         
         for i, d in enumerate(dates_df1):
             if i < window_size:
+                for s in self.symbols:
+                    self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
+                    self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
                 continue
                 
             poss = self._check_position()
@@ -505,6 +511,9 @@ class TestTrader(TraderBase):
         dates_df1 = self.charts[tf1][self.symbols[0]]['ms'].to_list()
         for i,d in enumerate(dates_df1):
             if i < window_size:
+                for s in self.symbols:
+                    self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
+                    self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
                 continue
             poss = self._check_position()
             temp_dfs = {tf: {} for tf in self.timeframes}
@@ -917,7 +926,53 @@ class TestTrader(TraderBase):
         #     avg_trade = td['total'] / td['count']
         #     print(f"Средний PnL на сделку: {avg_trade:.2f}")
     #draw funcs
+    def plot_transaction(self,td):
+        td['o_longs'] = np.array(td['o_longs'])
+        td['o_shorts'] = np.array(td['o_shorts'])
+        td['c_longs'] = np.array(td['c_longs'])
+        td['c_shorts'] = np.array(td['c_shorts'])
+        if len(td['o_longs'].shape) > 1:
+            plt.scatter(td['o_longs'][:,0],td['o_longs'][:,1],marker='^',color='blue')
+        if len(td['o_shorts'].shape) > 1:
+            plt.scatter(td['o_shorts'][:,0],td['o_shorts'][:,1],marker='v',color='black')
+        if len(td['c_longs'].shape) > 1:
+            plt.scatter(td['c_longs'][:,0],td['c_longs'][:,1],marker='x',color='blue')
+        if len(td['c_shorts'].shape) > 1:
+            plt.scatter(td['c_shorts'][:,0],td['c_shorts'][:,1],marker='x',color='black')
+
     def plot_equity(self,symbol):
         plt.plot(self.trade_data[symbol]['equity'],color='r')
         plt.plot(self.trade_data[symbol]['equity_fee'],color='b')
+        plt.show()
+
+    def plot_chart(self,symbol,tf='5min',convert_tf=None,show=True):
+        chart = self.charts[tf][symbol]
+        if convert_tf:
+            chart = convert_timeframe(chart,convert_tf)
+        td = self.trade_data[symbol]
+        draw_hb_chart_fast(chart)
+        self.plot_transaction(td)
+        if show:
+            plt.show()
+    
+    def plot_chart_and_sequtity(self,symbol,tf='5min',convert_tf=None,vtb=True):
+        # Создаем фигуру с двумя subplot'ами
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)  # sharex=True для синхронизации по оси X
+        
+        # Первый график
+        plt.sca(ax1)
+        self.plot_chart(symbol, tf, convert_tf, show=False)
+        
+        # Второй график
+        plt.sca(ax2)
+        sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
+        ax2.plot(sequity)
+        
+        # Добавляем подписи для удобства
+        ax1.set_title(f'Chart for {symbol}')
+        ax2.set_title('Sequity')
+        ax2.set_xlabel('Time')
+        
+        # Автоматическая регулировка layout'а
+        plt.tight_layout()
         plt.show()
