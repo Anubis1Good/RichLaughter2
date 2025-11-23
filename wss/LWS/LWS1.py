@@ -1,6 +1,6 @@
 import pandas as pd
 from wss.WSBase import WSBase
-from indicators.classic_ind import add_rsi
+from indicators.classic_ind import add_rsi,add_atr
 
 class LWS1_FIRSTGRID(WSBase):
     """грид-бот"""
@@ -922,17 +922,19 @@ class LWS3_APEX(WSBase):
         return self.need_pos
 
 
-class LWS4_(WSBase):
-    """Плавающий грид-бот c уровнями по волатильности"""
+class LWS4_SWATR(WSBase):
+    """Плавающий грид-бот c ATR"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """
         parameters = {
             'amount_lvl': 5,
-            'period_atr':10,
-            'mult_atr':2,
+            'atr_multiplier': 2.0,
+            'atr_period': 14,
             'grid_dir': 1,
-            'keep':False,
-            'reset_n':2
+            'keep': False,
+            'reset_n': 2,
+            'smoothing_factor': 0.1,
+            'buffer_multiplier': 0.3  
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -940,153 +942,231 @@ class LWS4_(WSBase):
         self.first_run = {s: True for s in self.symbols}
         self.step = {s: None for s in self.symbols}
         self.lvls = {s: list() for s in self.symbols}
-        self.per_step = parameters['per_step']
-        self.buff = self.per_step / 2
+        self.atr_multiplier = parameters['atr_multiplier']
+        self.atr_period = parameters.get('atr_period', 14)
+        self.smoothing_factor = parameters.get('smoothing_factor', 0.1)
+        self.buffer_multiplier = parameters.get('buffer_multiplier', 0.3)  # Новый параметр
         self.grid_dir = parameters['grid_dir']
         self.keep = parameters['keep']
         self.reset_n = parameters['reset_n']
         self.up_lvls = {s: None for s in self.symbols}
         self.down_lvls = {s: None for s in self.symbols}
         self.middle_lvls = {s: None for s in self.symbols}
-        if self.grid_dir == 1: #long
+        self.atr_values = {s: None for s in self.symbols}
+        self.smoothed_atr = {s: None for s in self.symbols}
+        
+        if self.grid_dir == 1:
             self.grid_func = self.long_grid
         elif self.grid_dir == -1:
             self.grid_func = self.short_grid
         else:
             self.grid_func = self.neutral_grid
-
-    def init_grid(self,s,row):
-        self.step[s] = (row['close'] / 100) * self.per_step
-        if self.grid_dir == 1: #long
-            self.long_init_grid(s,row)
-        elif self.grid_dir == -1:
-            self.short_init_grid(s,row)
-        else:
-            self.neutral_init_grid(s,row)
     
-    def update_grid(self,s,row):
-        if row['close'] > self.up_lvls[s]:
-            self.step[s] = (row['close'] / 100) * self.per_step
-            if self.grid_dir != 0:
-                self.long_init_grid(s,row)
-            else:
-                self.neutral_init_grid(s,row)
-        elif row['close'] < self.down_lvls[s]:
-            self.step[s] = (row['close'] / 100) * self.per_step
-            if self.grid_dir != 0:
-                self.short_init_grid(s,row)
-            else:
-                self.neutral_init_grid(s,row)
+    def calculate_atr(self, s, row, dfs):
+        """Расчет ATR на основе исторических данных"""
+        tf1 = self.timeframes[0]
+        df = dfs[tf1][s]
+        
+        # Добавляем ATR к данным если его нет
+        if 'atr' not in df.columns:
+            df = add_atr(df, self.atr_period)
+            dfs[tf1][s] = df
+        
+        current_atr = df['atr'].iloc[-1]
+        
+        # Сглаживание ATR для избежания резких изменений
+        if self.smoothed_atr[s] is None:
+            self.smoothed_atr[s] = current_atr
+        else:
+            self.smoothed_atr[s] = (self.smoothing_factor * current_atr + 
+                                   (1 - self.smoothing_factor) * self.smoothed_atr[s])
+        
+        self.atr_values[s] = self.smoothed_atr[s]
+        self.step[s] = self.atr_values[s] * self.atr_multiplier
+        return self.step[s]
 
+    def init_grid(self, s, row, dfs):
+        """Инициализация сетки с ATR"""
+        step = self.calculate_atr(s, row, dfs)
+        
+        # Минимальный шаг для избежания слишком частых переключений
+        min_step = row['close'] * 0.002
+        self.step[s] = max(step, min_step)
+        
+        if self.grid_dir == 1:
+            self.long_init_grid(s, row)
+        elif self.grid_dir == -1:
+            self.short_init_grid(s, row)
+        else:
+            self.neutral_init_grid(s, row)
 
-    def long_init_grid(self,s,row):
+    def update_grid(self, s, row, dfs):
+        """Обновление сетки с проверкой гистерезиса"""
+        step = self.calculate_atr(s, row, dfs)
+        
+        # Гистерезис: обновляем сетку только если цена вышла за границы + буфер ATR
+        atr_buffer = self.atr_values[s] * 1.5  # Буфер в 1.5 ATR
+        
+        up_threshold = self.up_lvls[s] + atr_buffer if self.grid_dir != -1 else self.up_lvls[s]
+        down_threshold = self.down_lvls[s] - atr_buffer if self.grid_dir != 1 else self.down_lvls[s]
+        
+        if row['close'] > up_threshold:
+            self.step[s] = step
+            if self.grid_dir != 0:
+                self.long_init_grid(s, row)
+            else:
+                self.neutral_init_grid(s, row)
+            # print(f'LWS4_SWATR: {s} - Grid updated UP. New levels: {self.lvls[s]}')
+            
+        elif row['close'] < down_threshold:
+            self.step[s] = step
+            if self.grid_dir != 0:
+                self.short_init_grid(s, row)
+            else:
+                self.neutral_init_grid(s, row)
+            # print(f'LWS4_SWATR: {s} - Grid updated DOWN. New levels: {self.lvls[s]}')
+
+    def long_init_grid(self, s, row):
+        """Инициализация лонг сетки с округлением до шага ATR"""
         self.lvls[s].clear()
-        n_lvl = row['close'] // self.step[s]
+        # Округление цены до ближайшего шага ATR
+        n_lvl = round(row['close'] / self.step[s])
         start_lvl = self.step[s] * n_lvl
+        
         for i in range(self.amount_lvl):
-            lvl = start_lvl - self.step[s]*i
-            self.lvls[s].append(lvl)
+            lvl = start_lvl - self.step[s] * i
+            self.lvls[s].append(round(lvl, 6))  # Округление для точности
+            
         self.up_lvls[s] = start_lvl + self.step[s] * self.reset_n
         self.down_lvls[s] = start_lvl - self.step[s] * (self.amount_lvl + self.reset_n - 1)
 
-    def short_init_grid(self,s,row):
+    def short_init_grid(self, s, row):
+        """Инициализация шорт сетки с округлением до шага ATR"""
         self.lvls[s].clear()
-        n_lvl = row['close'] // self.step[s]
+        n_lvl = round(row['close'] / self.step[s])
         start_lvl = self.step[s] * n_lvl
+        
         for i in range(self.amount_lvl):
-            lvl = start_lvl + self.step[s]*i
-            self.lvls[s].append(lvl)
+            lvl = start_lvl + self.step[s] * i
+            self.lvls[s].append(round(lvl, 6))
+            
         self.up_lvls[s] = start_lvl + self.step[s] * (self.amount_lvl + self.reset_n - 1)
         self.down_lvls[s] = start_lvl - self.step[s] * self.reset_n
 
-    def neutral_init_grid(self,s,row):
+    def neutral_init_grid(self, s, row):
+        """Инициализация нейтральной сетки с округлением до шага ATR"""
         self.lvls[s].clear()
-        n_lvl = row['close'] // self.step[s]
+        n_lvl = round(row['close'] / self.step[s])
         middle_lvl = self.step[s] * n_lvl
-        for i in range(1,self.amount_lvl // 2+1):
-            lvl = middle_lvl + self.step[s]*i
-            self.lvls[s].append(lvl)
-            lvl = middle_lvl - self.step[s]*i
-            self.lvls[s].append(lvl)
-        self.lvls[s].append(middle_lvl)
+        
+        # Создаем уровни в обе стороны от средней цены
+        for i in range(1, self.amount_lvl // 2 + 1):
+            lvl = middle_lvl + self.step[s] * i
+            self.lvls[s].append(round(lvl, 6))
+            lvl = middle_lvl - self.step[s] * i
+            self.lvls[s].append(round(lvl, 6))
+            
+        self.lvls[s].append(round(middle_lvl, 6))
         self.lvls[s].sort()
         self.up_lvls[s] = max(self.lvls[s]) + self.step[s] * self.reset_n
         self.down_lvls[s] = min(self.lvls[s]) - self.step[s] * self.reset_n
         self.middle_lvls[s] = middle_lvl
 
-    def long_grid(self,row,s):
+    def long_grid(self, row, s):
+        """Лонг сетка с динамическим буфером на основе ATR"""
         new_pos = -1
-        buff = self.step[s] / 2
+        dynamic_buffer = self.atr_values[s] * self.buffer_multiplier
+        
         for lvl in self.lvls[s]:
             if row['close'] <= lvl:
                 new_pos += 1
-            elif lvl + buff >= row['close']:
+            elif lvl + dynamic_buffer >= row['close']:
                 new_pos = None
                 break
+                
         if new_pos == 0:
             new_pos = None
         elif new_pos == -1:
-            if self.keep:
-                new_pos = None
-            else:
-                new_pos = 0
+            new_pos = 0 if not self.keep else None
+            
         self.need_pos[s] = new_pos
 
-    
-    def short_grid(self,row,s):
+    def short_grid(self, row, s):
+        """Шорт сетка с динамическим буфером"""
         new_pos = 1
-        buff = self.step[s] / 2
+        dynamic_buffer = self.atr_values[s] * self.buffer_multiplier
+        
         for lvl in self.lvls[s]:
             if row['close'] >= lvl:
                 new_pos -= 1
-            elif lvl - buff <= row['close']:
+            elif lvl - dynamic_buffer <= row['close']:
                 new_pos = None
                 break
+                
         if new_pos == 0:
             new_pos = None
         elif new_pos == 1:
-            if self.keep:
-                new_pos = None
-            else:
-                new_pos = 0
+            new_pos = 0 if not self.keep else None
+            
         self.need_pos[s] = new_pos
     
-    def neutral_grid(self,row,s):
+    def neutral_grid(self, row, s):
+        """Нейтральная сетка с динамическим буфером ATR"""
         new_pos = 0
-        buff = self.step[s] / 2
+        dynamic_buffer = self.atr_values[s] * self.buffer_multiplier
+        
         for lvl in self.lvls[s]:
             if lvl < self.middle_lvls[s]:
+                # Уровни ниже средней цены - для покупок
                 if row['close'] <= lvl:
                     new_pos += 1
-                elif lvl + buff >= row['close'] and self.positions[s] > 0:
+                elif lvl + dynamic_buffer >= row['close'] and self.positions[s] > 0:
                     new_pos = None
                     break
             elif lvl > self.middle_lvls[s]:
+                # Уровни выше средней цены - для продаж
                 if row['close'] >= lvl:
                     new_pos -= 1
-                elif lvl - buff <= row['close'] and self.positions[s] < 0:
+                elif lvl - dynamic_buffer <= row['close'] and self.positions[s] < 0:
                     new_pos = None
                     break
+                    
         if new_pos == 0:
             new_pos = None
+            
         self.need_pos[s] = new_pos
-        
     
     def preprocessing(self, dfs, poss):
-        self.last_dfs = dfs.copy()
+        """Предобработка с расчетом ATR для всех символов"""
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        
+        for s in self.symbols:
+            if s in dfs[tf1]:
+                # Гарантируем, что ATR рассчитан для всех данных
+                df = dfs[tf1][s].copy()
+                if 'atr' not in df.columns:
+                    df = add_atr(df, self.atr_period)
+                self.last_dfs[tf1][s] = df
+                
         self.update_poss_mps(poss)
         return self.last_dfs
     
     def __call__(self, *args, **kwds):
+        """Основной метод с интеграцией ATR"""
         tf1 = self.timeframes[0]
-        for s in self.last_dfs[tf1]:
-            row = self.last_dfs[tf1][s].iloc[-1]
-            if self.first_run[s]:
-                self.first_run[s] = False
-                self.init_grid(s,row)
-                print('LWS2_SWIMGRID:',s,self.lvls[s],self.up_lvls[s],self.down_lvls[s])
-            self.update_grid(s,row)
-            self.grid_func(row,s)
-            # print(self.lvls[s],row['close'],self.need_pos[s])
+        for s in self.symbols:
+            if s in self.last_dfs[tf1]:
+                df = self.last_dfs[tf1][s]
+                row = df.iloc[-1]
+                
+                if self.first_run[s]:
+                    self.first_run[s] = False
+                    self.init_grid(s, row, self.last_dfs)
+                    print(f'LWS4_SWATR: {s}, Levels: {[round(l, 6) for l in self.lvls[s]]}, '
+                          f'Step: {self.step[s]:.6f}, ATR: {self.atr_values[s]:.6f}')
+                
+                self.update_grid(s, row, self.last_dfs)
+                self.grid_func(row, s)
+                
         return self.need_pos
-    

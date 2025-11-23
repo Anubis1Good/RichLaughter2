@@ -1,10 +1,11 @@
 import os
 from traders.TestTrader.TestTrader import TestTrader
-from wss.LWS.LWS1 import LWS2_SWIMIGSON as WSS
+# from wss.LWS.LWS1 import LWS2_SWIMIGSON as WSS
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.LWS.LWS1 import LWS3_APEX as WSS
+from wss.LWS.LWS1 import LWS4_SWATR as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -34,11 +35,14 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'amount_lvl': 4,
-            'per_step':0.1,
+            'amount_lvl': 5,
+            'atr_multiplier': 1.0,
+            'atr_period': 14,
             'grid_dir': 0,
-            'keep':False,
-            'reset_n':2
+            'keep': False,
+            'reset_n': 2,
+            'smoothing_factor': 0.1,
+            'buffer_multiplier': 0.3 
     }
     ),
     charts={'5min':charts},

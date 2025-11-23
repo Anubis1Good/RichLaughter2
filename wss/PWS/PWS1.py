@@ -118,7 +118,7 @@ class PWS1_GRIDC(WSBase):
         return self.need_pos
     
 class PWS1_PRGDC(WSBase):
-    """грид-бот по DC"""
+    """парный грид-бот по DC"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """
         parameters = {

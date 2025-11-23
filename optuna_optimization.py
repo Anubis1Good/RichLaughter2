@@ -7,6 +7,7 @@ from tqdm import tqdm
 from multiprocessing import Pool
 from functools import partial
 import matplotlib.pyplot as plt
+from pprint import pprint
 
 from traders.TestTrader.TestTrader import TestTrader
 
@@ -94,7 +95,7 @@ class TestTraderOptimizer:
                 close_on_time=config.get('close_on_time', False),
                 need_debug=False
             )
-            trader.check_fast()
+            trader.check_window_fast()
             
             total_trades = sum([trader.trade_data[s]['amount'] for s in trader.trade_data])
             
@@ -159,7 +160,7 @@ class TestTraderOptimizer:
             )
             
             # Запускаем тестирование
-            trader.check_fast()
+            trader.check_window_fast()
             
             # Собираем детальную статистику
             detailed_stats = {}
@@ -249,13 +250,14 @@ def process_single_config(config, n_trials=100, n_jobs=1, top_limit=600, bottom_
 
 def main():
     from work_inits.optuna_configs import optimization_configs
+    # pprint(optimization_configs)
     # Настройки лимитов
     top_limit = 1000
     bottom_limit = 100
     # Пример конфигураций для оптимизации
     
-    n_trials = 50
-    n_jobs = 3
+    n_trials = 100
+    n_jobs = 5
     
     # Параллельная обработка конфигураций
     num_processes = min(phys_cores - save_cores, len(optimization_configs))
