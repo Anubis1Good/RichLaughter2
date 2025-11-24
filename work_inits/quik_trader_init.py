@@ -1,4 +1,5 @@
 from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID,LWS2_PSGSON,LWS2_SWIMIGSON
+from wss.LWS.LWS2 import LWS5_ARCHIMEDES,LWS5_CADUCEUS,LWS6_TIDAL
 
 
 from traders.QuikTrader.QuikTrader import QuikTrader
@@ -43,10 +44,10 @@ bot_on_ticker = [
 
     # },
     {
-        'ws': LWS1_FIRSTGRID,
+        'ws': LWS5_ARCHIMEDES,
         'ws_params':{
-            'lvls':(2625,2665,2685),
-            'us_lvl': 2733,
+            'lvls':(2540,2625,2665),
+            'us_lvl': 2725,
             'ds_lvl': None,
             'grid_dir': 1
         },
@@ -60,12 +61,12 @@ bot_on_ticker = [
 
     },
     {
-        'ws': LWS1_AUTOGRID,
+        'ws': LWS5_CADUCEUS,
         'ws_params':{
-            'start':2560,
-            'end':2658,
+            'start':2575,
+            'end':2660,
             'amount_lvl': 3,
-            'us_lvl': 2701,
+            'us_lvl': 2690,
             'ds_lvl': None,
             'grid_dir': 1,
         },
@@ -95,24 +96,24 @@ bot_on_ticker = [
     #     ]
 
     # },
-    {
-        'ws': LWS2_SWIMIGSON,
-        'ws_params':{
-            'amount_lvl': 3,
-            'per_step':0.5,
-            'grid_dir': 1,
-            'keep':False,
-            'reset_n':2
-        },
-        'dts': [
-            {
-                'ss':('GZZ5',),
-                'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
+    # {
+    #     'ws': LWS2_SWIMIGSON,
+    #     'ws_params':{
+    #         'amount_lvl': 3,
+    #         'per_step':0.5,
+    #         'grid_dir': 1,
+    #         'keep':False,
+    #         'reset_n':2
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('GZZ5',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
 
-    },
+    # },
 ]
 
 def init_trader() -> list[QuikTrader]:

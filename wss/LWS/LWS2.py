@@ -1,0 +1,389 @@
+import pandas as pd
+from wss.WSBase import WSBase
+from indicators.classic_ind import add_rsi,add_atr
+
+class LWS5_ARCHIMEDES(WSBase):
+    """грид-бот"""
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        """
+        parameters = {
+            'lvls':(200,300,400,500),
+            'us_lvl': None,
+            'ds_lvl': 100,
+            'grid_dir': 1
+        }
+        """
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        self.lvls = list(parameters['lvls'])
+        self.us_lvl = parameters['us_lvl']
+        self.ds_lvl = parameters['ds_lvl']
+        self.grid_dir = parameters['grid_dir']
+        self.middle_lvl = sum(self.lvls) / len(self.lvls)
+        self.in_work = True
+        if self.grid_dir == 1: #long
+            self.grid_func = self.long_grid
+            self.lvls.sort(reverse=True)
+        elif self.grid_dir == -1:
+            self.grid_func = self.short_grid
+            self.lvls.sort()
+        else:
+            self.grid_func = self.neutral_grid
+    
+    def long_grid(self,row,s):
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False    
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = 1
+        for i,lvl in enumerate(self.lvls):
+            if row['close'] <= lvl and row['high_1'] > lvl:
+                new_pos = i + 1
+            if row['close'] <= lvl:
+                max_pos += 1
+        if self.positions[s] > max_pos:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def short_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = -1
+        for i,lvl in enumerate(self.lvls):
+            if row['close'] >= lvl and row['low_1'] < lvl:
+                new_pos = -(i + 1)
+            if row['close'] >= lvl:
+                max_pos -= 1
+        if self.positions[s] < max_pos:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def neutral_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False 
+        new_pos = None
+        max_pos = 0
+        for i,lvl in enumerate(self.lvls):
+            if lvl < self.middle_lvl:
+                if row['close'] <= lvl:
+                    max_pos += 1
+                if row['close'] <= lvl and row['high_1'] > lvl:
+                    new_pos = 1
+            elif lvl > self.middle_lvl:
+                if row['close'] >= lvl:
+                    max_pos -= 1
+                if row['close'] >= lvl and row['low_1'] < lvl:
+                    new_pos = -1
+        if new_pos:
+            new_pos = max_pos
+        if self.positions[s] > 0 and max_pos < 0:
+            new_pos = max_pos
+        elif self.positions[s] < 0 and max_pos > 0:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def preprocessing(self, dfs, poss):
+        self.update_poss_mps(poss)
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        
+        for s in dfs[tf1]:
+            df = dfs[tf1][s].copy()
+            df['high_1'] = df['high'].shift(1)
+            df['low_1'] = df['low'].shift(1)
+            self.last_dfs[tf1][s] = df
+        return self.last_dfs
+    
+    def __call__(self, *args, **kwds):
+        if self.in_work:
+            tf1 = self.timeframes[0]
+            for s in self.last_dfs[tf1]:
+                row = self.last_dfs[tf1][s].iloc[-1]
+                if not self.grid_func(row,s):
+                    break
+        else:
+            self.need_pos = {s: 0 for s in self.symbols}
+        return self.need_pos
+    
+class LWS5_CADUCEUS(WSBase):
+    """грид-бот c авто рассчетом"""
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        """
+        parameters = {
+            'start':200,
+            'end':300,
+            'amount_lvl': 5,
+            'us_lvl': None,
+            'ds_lvl': 100,
+            'grid_dir': 1,
+        }
+        """
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        delta_se = parameters['end'] - parameters['start']
+        step_lvl = delta_se / (parameters['amount_lvl'] - 1)
+        self.lvls = [parameters['start'] + step_lvl*i for i in range(parameters['amount_lvl'])]
+        print(symbols,self.lvls)
+        self.us_lvl = parameters['us_lvl']
+        self.ds_lvl = parameters['ds_lvl']
+        self.grid_dir = parameters['grid_dir']
+        self.middle_lvl = sum(self.lvls) / len(self.lvls)
+        self.in_work = True
+        if self.grid_dir == 1: #long
+            self.grid_func = self.long_grid
+            self.lvls.sort(reverse=True)
+        elif self.grid_dir == -1:
+            self.grid_func = self.short_grid
+            self.lvls.sort()
+        else:
+            self.grid_func = self.neutral_grid
+    
+    def long_grid(self,row,s):
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False    
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = 1
+        for i,lvl in enumerate(self.lvls):
+            if row['close'] <= lvl and row['high_1'] > lvl:
+                new_pos = i + 1
+            if row['close'] <= lvl:
+                max_pos += 1
+        if self.positions[s] > max_pos:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def short_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = -1
+        for i,lvl in enumerate(self.lvls):
+            if row['close'] >= lvl and row['low_1'] < lvl:
+                new_pos = -(i + 1)
+            if row['close'] >= lvl:
+                max_pos -= 1
+        if self.positions[s] < max_pos:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def neutral_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False 
+        new_pos = None
+        max_pos = 0
+        for i,lvl in enumerate(self.lvls):
+            if lvl < self.middle_lvl:
+                if row['close'] <= lvl:
+                    max_pos += 1
+                if row['close'] <= lvl and row['high_1'] > lvl:
+                    new_pos = 1
+            elif lvl > self.middle_lvl:
+                if row['close'] >= lvl:
+                    max_pos -= 1
+                if row['close'] >= lvl and row['low_1'] < lvl:
+                    new_pos = -1
+        if new_pos:
+            new_pos = max_pos
+        if self.positions[s] > 0 and max_pos < 0:
+            new_pos = max_pos
+        elif self.positions[s] < 0 and max_pos > 0:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def preprocessing(self, dfs, poss):
+        self.update_poss_mps(poss)
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        
+        for s in dfs[tf1]:
+            df = dfs[tf1][s].copy()
+            df['high_1'] = df['high'].shift(1)
+            df['low_1'] = df['low'].shift(1)
+            self.last_dfs[tf1][s] = df
+        return self.last_dfs
+    
+    def __call__(self, *args, **kwds):
+        if self.in_work:
+            tf1 = self.timeframes[0]
+            for s in self.last_dfs[tf1]:
+                row = self.last_dfs[tf1][s].iloc[-1]
+                if not self.grid_func(row,s):
+                    break
+        else:
+            self.need_pos = {s: 0 for s in self.symbols}
+        return self.need_pos
+    
+class LWS6_TIDAL(WSBase):
+    """грид-бот c авто рассчетом и выходом по rsi"""
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        """
+        parameters = {
+            'start':200,
+            'end':300,
+            'amount_lvl': 5,
+            'period_rsi':14,
+            'rsi_thresh':30,
+            'us_lvl': None,
+            'ds_lvl': 100,
+            'grid_dir': 1,
+        }
+        """
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        delta_se = parameters['end'] - parameters['start']
+        step_lvl = delta_se / (parameters['amount_lvl'] - 1)
+        self.lvls = [parameters['start'] + step_lvl*i for i in range(parameters['amount_lvl'])]
+        print(symbols,self.lvls)
+        self.us_lvl = parameters['us_lvl']
+        self.ds_lvl = parameters['ds_lvl']
+        self.grid_dir = parameters['grid_dir']
+        self.middle_lvl = sum(self.lvls) / len(self.lvls)
+        self.in_work = True
+        self.period_rsi = parameters['period_rsi']
+        self.rsi_thresh = parameters['rsi_thresh']
+        if self.grid_dir == 1: #long
+            self.grid_func = self.long_grid
+            self.lvls.sort(reverse=True)
+        elif self.grid_dir == -1:
+            self.grid_func = self.short_grid
+            self.lvls.sort()
+        else:
+            self.grid_func = self.neutral_grid
+    
+    def long_grid(self,row,s):
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False    
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = 1
+        for i,lvl in enumerate(self.lvls):
+            if row['rsi'] < 70 - self.rsi_thresh:
+                if row['close'] <= lvl and row['high_1'] > lvl:
+                    new_pos = i + 1
+            if row['close'] <= lvl:
+                max_pos += 1
+        if row['rsi'] > 100 - self.rsi_thresh:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def short_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.need_pos[s] = 0
+                return True
+        new_pos = None
+        max_pos = -1
+        for i,lvl in enumerate(self.lvls):
+            if row['rsi'] > 30 + self.rsi_thresh:
+                if row['close'] >= lvl and row['low_1'] < lvl:
+                    new_pos = -(i + 1)
+            if row['close'] >= lvl:
+                max_pos -= 1
+        if row['rsi'] < self.rsi_thresh:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def neutral_grid(self,row,s):
+        if self.us_lvl:
+            if row['close'] > self.us_lvl:
+                self.in_work = False
+                return False    
+        if self.ds_lvl:
+            if row['close'] < self.ds_lvl:
+                self.in_work = False
+                return False 
+        new_pos = None
+        max_pos = 0
+        for i,lvl in enumerate(self.lvls):
+            if lvl < self.middle_lvl:
+                if row['close'] <= lvl:
+                    max_pos += 1
+                if row['close'] <= lvl and row['high_1'] > lvl:
+                    new_pos = 1
+            elif lvl > self.middle_lvl:
+                if row['close'] >= lvl:
+                    max_pos -= 1
+                if row['close'] >= lvl and row['low_1'] < lvl:
+                    new_pos = -1
+        if new_pos:
+            new_pos = max_pos
+        if row['rsi'] > 100 - self.rsi_thresh and max_pos < 0:
+            new_pos = max_pos
+        elif row['rsi'] < self.rsi_thresh and max_pos > 0:
+            new_pos = max_pos
+        self.need_pos[s] = new_pos
+        return True
+    
+    def preprocessing(self, dfs, poss):
+        self.update_poss_mps(poss)
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        
+        for s in dfs[tf1]:
+            df = dfs[tf1][s].copy()
+            df = add_rsi(df,self.period_rsi)
+            df['high_1'] = df['high'].shift(1)
+            df['low_1'] = df['low'].shift(1)
+            self.last_dfs[tf1][s] = df
+        return self.last_dfs
+    
+    def __call__(self, *args, **kwds):
+        if self.in_work:
+            tf1 = self.timeframes[0]
+            for s in self.last_dfs[tf1]:
+                row = self.last_dfs[tf1][s].iloc[-1]
+                if not self.grid_func(row,s):
+                    break
+        else:
+            self.need_pos = {s: 0 for s in self.symbols}
+        return self.need_pos
