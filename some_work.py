@@ -5,7 +5,7 @@ from traders.TestTrader.TestTrader import TestTrader
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.LWS.LWS1 import LWS3_APEX as WSS
-from wss.LWS.LWS2 import LWS6_ as WSS
+from wss.LWS.LWS2 import LWS5_PROGRESSO as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -35,14 +35,13 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':2500,
-            'end':2600,
-            'amount_lvl': 5,
+            'start':2600,
+            'amount_lvl': 10,
+            'start_step':0.5,
+            'mult_lvl': 2,
             'us_lvl': None,
-            'ds_lvl': None,
-            'grid_dir': 0,
-            'period_rsi':14,
-            'rsi_thresh':30,
+            'ds_lvl': 2500,
+            'grid_dir': -1,
     }
     ),
     charts={'5min':charts},

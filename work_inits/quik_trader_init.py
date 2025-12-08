@@ -46,29 +46,10 @@ bot_on_ticker = [
     {
         'ws': LWS5_ARCHIMEDES,
         'ws_params':{
-            'lvls':(2540,2625,2665),
-            'us_lvl': 2725,
+            'lvls':(2510,2578,2630,2675),
+            'us_lvl': 2715,
             'ds_lvl': None,
             'grid_dir': 1
-        },
-        'dts': [
-            {
-                'ss':('MMZ5',),
-                'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
-
-    },
-    {
-        'ws': LWS5_CADUCEUS,
-        'ws_params':{
-            'start':2575,
-            'end':2660,
-            'amount_lvl': 3,
-            'us_lvl': 2690,
-            'ds_lvl': None,
-            'grid_dir': 1,
         },
         'dts': [
             {
@@ -79,6 +60,25 @@ bot_on_ticker = [
         ]
 
     },
+    # {
+    #     'ws': LWS5_CADUCEUS,
+    #     'ws_params':{
+    #         'start':2608,
+    #         'end':2675,
+    #         'amount_lvl': 3,
+    #         'us_lvl': 2690,
+    #         'ds_lvl': None,
+    #         'grid_dir': 1,
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('IMOEXF',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
+
+    # },
     # {
     #     'ws': LWS2_PSGSON,
     #     'ws_params':{
