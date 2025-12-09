@@ -56,6 +56,12 @@ class TestTrader(TraderBase):
         self.close_map = close_map
         self.vtb_fee_funcs = {s: get_func_vtb_fee(s) for s in symbols}
 
+    def _check_position(self) -> Dict:
+        return {symbol: {
+            'pos':self.trade_data[symbol]['pos'],
+            'mp':self.trade_data[symbol]['mp']
+        } for symbol in self.symbols}
+    
     def reload_data(self):
         self.trade_data = {
             symbol : {
@@ -70,6 +76,7 @@ class TestTrader(TraderBase):
                 'step_eq_fee':[0], #equity каждый шаг
                 'step_eq_vtb':[0], #equity каждый шаг
                 'pos':0, #текущая позиция
+                'hist_pos':[],
                 'mp':0, #текущая цена
                 'o_longs':[], #входы в лонг
                 'o_shorts':[], #входы в шорт
@@ -160,6 +167,7 @@ class TestTrader(TraderBase):
                 self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
             self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
             self.trade_data[s]['total'] += self.trade_data[s]['equity'][-1]
+            self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
 
     def _process_position_change(self, symbol, new_pos, new_price, last_x):
         """Основной метод обработки изменения позиции"""
@@ -474,6 +482,7 @@ class TestTrader(TraderBase):
                 for s in self.symbols:
                     self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
                     self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
+                    self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
                 continue
                 
             poss = self._check_position()
@@ -514,6 +523,7 @@ class TestTrader(TraderBase):
                 for s in self.symbols:
                     self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
                     self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
+                    self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
                 continue
             poss = self._check_position()
             temp_dfs = {tf: {} for tf in self.timeframes}
@@ -955,8 +965,12 @@ class TestTrader(TraderBase):
         if show:
             plt.show()
     
-    def plot_chart_and_sequtity(self,symbol,tf='5min',convert_tf=None,vtb=True):
-        # Создаем фигуру с двумя subplot'ами
+    def plot_chart_and_sequtity(self,symbol,tf='5min',convert_tf=None,vtb=True,help_info='step_equity'):
+        """Создаем фигуру с двумя subplot'ами
+            Варианты:
+            'step_equity'
+            'pos'
+        """
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)  # sharex=True для синхронизации по оси X
         
         # Первый график
@@ -965,8 +979,14 @@ class TestTrader(TraderBase):
         
         # Второй график
         plt.sca(ax2)
-        sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
+        if help_info == 'step_equity':
+            sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
+        elif help_info == 'pos':
+            sequity = self.trade_data[symbol]['hist_pos']
+        else:
+            sequity = np.array([])
         ax2.plot(sequity)
+            
         
         # Добавляем подписи для удобства
         ax1.set_title(f'Chart for {symbol}')
