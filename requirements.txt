@@ -5,3 +5,4 @@ apimoex
 pyarrow
 fastparquet
 optuna
+tqdm

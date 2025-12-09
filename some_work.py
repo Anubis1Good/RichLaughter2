@@ -5,7 +5,7 @@ from traders.TestTrader.TestTrader import TestTrader
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.LWS.LWS1 import LWS3_APEX as WSS
-from wss.LWS.LWS2 import LWS5_PROGRESSO as WSS
+from wss.LWS.LWS2 import LWS5_XPG as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -22,7 +22,8 @@ from wss.LWS.LWS2 import LWS5_PROGRESSO as WSS
 
 folder_charts = 'data_for_tests\data_from_moex5'
 charts_list = os.listdir(folder_charts)
-symbols = ('IMOEXF','MMZ5')
+# symbols = ('IMOEXF','MMZ5')
+symbols = ('IMOEXF',)
 charts = {s: None for s in symbols}
 for chart in charts_list:
     for s in symbols:
@@ -35,12 +36,12 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':2600,
-            'amount_lvl': 10,
-            'start_step':0.5,
+            'start':2500,
+            'amount_lvl': 5,
+            'start_step':0.25,
             'mult_lvl': 2,
             'us_lvl': None,
-            'ds_lvl': 2500,
+            'ds_lvl': 2450,
             'grid_dir': -1,
     }
     ),
@@ -96,8 +97,9 @@ tt1.check_window_fast()
 # tt1.check_fast_vectorized()
 # # Печать статистики
 tt1.print_statistics('IMOEXF')
-tt1.print_statistics('MMZ5')
-tt1.plot_chart_and_sequtity('IMOEXF')
+# tt1.print_statistics('MMZ5')
+# tt1.plot_chart_and_sequtity('IMOEXF')
+tt1.plot_chart_and_sequtity('IMOEXF',help_info='pos')
 
 
 
