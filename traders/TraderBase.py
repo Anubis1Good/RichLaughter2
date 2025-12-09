@@ -9,7 +9,10 @@ class TraderBase:
         self.symbols = symbols
         self.timeframes = timeframes
         self.quantity_map = dict(zip(self.symbols, quantity))
-        poss = self._check_position()
+        poss = {symbol: {
+            'pos':0,
+            'mp':0
+        } for symbol in self.symbols}
         pos = {k: v['pos'] for k, v in poss.items()}
         mp = {k: v['mp'] for k, v in poss.items()}
         self.ws:WSBase = ws[0](self.symbols,self.timeframes,pos,mp,ws[1])
