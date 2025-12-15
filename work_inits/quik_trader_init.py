@@ -46,8 +46,8 @@ bot_on_ticker = [
     {
         'ws': LWS5_ARCHIMEDES,
         'ws_params':{
-            'lvls':(2510,2578,2630,2675),
-            'us_lvl': 2715,
+            'lvls':(2515,2575,2630),
+            'us_lvl': None,
             'ds_lvl': None,
             'grid_dir': 1
         },
