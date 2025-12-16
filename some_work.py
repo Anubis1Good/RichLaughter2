@@ -4,8 +4,8 @@ from traders.TestTrader.TestTrader import TestTrader
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
-# from wss.LWS.LWS1 import LWS3_APEX as WSS
-from wss.LWS.LWS2 import LWS5_XPG as WSS
+from wss.PSWS.PSWS1 import PSWS1_ as WSS
+# from wss.LWS.LWS2 import LWS5_XPG as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -32,17 +32,16 @@ for chart in charts_list:
 tt1 = TestTrader(
     symbols,
     ('5min',),
-    (1,1),
+    (1,),
     (
         WSS,    
         {
-            'start':2500,
-            'amount_lvl': 5,
-            'start_step':0.25,
-            'mult_lvl': 2,
-            'us_lvl': None,
-            'ds_lvl': 2450,
-            'grid_dir': -1,
+            'period_fractals':10,
+            'amount_lvl':5,
+            'min_step':0.1,
+            'buff':0.02,
+            'grid_dir':-1,
+            'offset':1
     }
     ),
     charts={'5min':charts},
