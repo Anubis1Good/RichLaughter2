@@ -5,14 +5,15 @@ from utils.draw_funcs import draw_hb_chart_fast
 from indicators.classic_ind import add_fractals
 from indicators.pva_ind import add_nlevels_fractal
 
-raw_file = 'data_for_tests\data_from_moex5\_5IMOEXF_1_1763448583.parquet'
+# raw_file = 'data_for_tests\data_from_moex5\_5IMOEXF_1_1763448583.parquet'
+raw_file = 'data_for_tests\data_from_moex5\_5IMOEXF_1_1763893692.parquet'
 df = pd.read_parquet(raw_file)
 
 
 df = add_fractals(df,10)
 
     
-df = add_nlevels_fractal(df,2,0.5)
+df = add_nlevels_fractal(df,10,0.5)
         
 print(df.tail())
 if 0:

@@ -4,8 +4,8 @@ from traders.TestTrader.TestTrader import TestTrader
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
-from wss.PSWS.PSWS1 import PSWS1_ as WSS
-# from wss.LWS.LWS2 import LWS5_XPG as WSS
+# from wss.PSWS.PSWS1 import PSWS1_ as WSS
+from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -24,6 +24,7 @@ folder_charts = 'data_for_tests\data_from_moex5'
 charts_list = os.listdir(folder_charts)
 # symbols = ('IMOEXF','MMZ5')
 symbols = ('IMOEXF',)
+symbols = ('CNYRUBF',)
 charts = {s: None for s in symbols}
 for chart in charts_list:
     for s in symbols:
@@ -36,12 +37,13 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'period_fractals':10,
-            'amount_lvl':5,
-            'min_step':0.1,
-            'buff':0.02,
-            'grid_dir':-1,
-            'offset':1
+            'start':10.660,
+            'end':11.270,
+            'amount_lvl': 5,
+            'us_lvl': 11.450,
+            'ds_lvl': None,
+            'grid_dir': 1,
+            'hold_pos': False
     }
     ),
     charts={'5min':charts},
@@ -95,10 +97,11 @@ tt1.reload_data()
 tt1.check_window_fast()
 # tt1.check_fast_vectorized()
 # # Печать статистики
-tt1.print_statistics('IMOEXF')
+tt1.print_statistics(symbols[0])
 # tt1.print_statistics('MMZ5')
 # tt1.plot_chart_and_sequtity('IMOEXF')
-tt1.plot_chart_and_sequtity('IMOEXF',help_info='pos')
+# tt1.plot_chart_and_sequtity('IMOEXF',help_info='pos')
+tt1.plot_chart_and_sequtity(symbols[0],help_info='complex')
 
 
 

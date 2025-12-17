@@ -74,7 +74,9 @@ class TestTrader(TraderBase):
                 'equity_fee':[0], #динамика дохода с комиссией
                 # 'equity_vtb':[0], #динамика дохода с комиссией vtb
                 'step_eq_fee':[0], #equity каждый шаг
+                'unclosed_fee':[0], #equity незакрытый каждый шаг
                 'step_eq_vtb':[0], #equity каждый шаг
+                'unclosed_vtb':[0], #equity незакрытый каждый шаг
                 'pos':0, #текущая позиция
                 'hist_pos':[],
                 'mp':0, #текущая цена
@@ -168,6 +170,15 @@ class TestTrader(TraderBase):
             self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
             self.trade_data[s]['total'] += self.trade_data[s]['equity'][-1]
             self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
+            if self.trade_data[s]['pos'] > 0:
+                unclosed_fee = (last_prices[s]- self.trade_data[s]['mp']) * self.trade_data[s]['pos']  
+            elif self.trade_data[s]['pos'] < 0:
+                unclosed_fee = (self.trade_data[s]['mp'] - last_prices[s]) * abs(self.trade_data[s]['pos'])
+            else:
+                unclosed_fee = 0
+            self.trade_data[s]['unclosed_fee'].append(self.trade_data[s]['step_eq_fee'][-1] + unclosed_fee)
+            self.trade_data[s]['unclosed_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1] + self.vtb_fee_funcs[s](unclosed_fee,0))
+            # print(self.trade_data[s]['step_eq_vtb'][-1],self.vtb_fee_funcs[s](unclosed_fee,0),self.trade_data[s]['unclosed_vtb'][-1],last_xs)
 
     def _process_position_change(self, symbol, new_pos, new_price, last_x):
         """Основной метод обработки изменения позиции"""
@@ -483,6 +494,8 @@ class TestTrader(TraderBase):
                     self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
                     self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
                     self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
+                    self.trade_data[s]['unclosed_fee'].append(self.trade_data[s]['unclosed_fee'][-1])
+                    self.trade_data[s]['unclosed_vtb'].append(self.trade_data[s]['unclosed_vtb'][-1])
                 continue
                 
             poss = self._check_position()
@@ -524,6 +537,8 @@ class TestTrader(TraderBase):
                     self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
                     self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
                     self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
+                    self.trade_data[s]['unclosed_fee'].append(self.trade_data[s]['unclosed_fee'][-1])
+                    self.trade_data[s]['unclosed_vtb'].append(self.trade_data[s]['unclosed_vtb'][-1])
                 continue
             poss = self._check_position()
             temp_dfs = {tf: {} for tf in self.timeframes}
@@ -983,6 +998,12 @@ class TestTrader(TraderBase):
             sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
         elif help_info == 'pos':
             sequity = self.trade_data[symbol]['hist_pos']
+        elif help_info == 'unclosed':
+            sequity = self.trade_data[symbol]['unclosed_vtb'] if vtb else self.trade_data[symbol]['unclosed_fee']
+        elif help_info == 'complex':
+            sequity = self.trade_data[symbol]['unclosed_vtb'] if vtb else self.trade_data[symbol]['unclosed_fee']
+            ax2.plot(sequity)
+            sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
         else:
             sequity = np.array([])
         ax2.plot(sequity)

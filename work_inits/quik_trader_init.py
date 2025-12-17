@@ -1,5 +1,4 @@
-from wss.LWS.LWS1 import LWS1_FIRSTGRID,LWS1_AUTOGRID,LWS2_SWIMGRID,LWS2_PSGSON,LWS2_SWIMIGSON
-from wss.LWS.LWS2 import LWS5_ARCHIMEDES,LWS5_CADUCEUS,LWS6_TIDAL
+from wss.LWS.LWS2 import LWS5_XPG,LWS5_EUCLID,LWS5_MERCATUS
 
 
 from traders.QuikTrader.QuikTrader import QuikTrader
@@ -24,32 +23,34 @@ bot_on_ticker = [
     #     ]
 
     # },
-    # {
-    #     'ws': LWS1_AUTOGRID,
-    #     'ws_params':{
-    #         'start':11.290,
-    #         'end':11.480,
-    #         'amount_lvl': 8,
-    #         'us_lvl': 11.540,
-    #         'ds_lvl': 11.140,
-    #         'grid_dir': 0,
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('CNYRUBF',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
     {
-        'ws': LWS5_ARCHIMEDES,
+        'ws': LWS5_MERCATUS,
         'ws_params':{
-            'lvls':(2515,2575,2630),
-            'us_lvl': None,
+            'start':10.660,
+            'end':11.270,
+            'amount_lvl': 5,
+            'us_lvl': 11.450,
             'ds_lvl': None,
-            'grid_dir': 1
+            'grid_dir': 1,
+            'hold_pos': False
+        },
+        'dts': [
+            {
+                'ss':('CNYRUBF',),
+                'tfs':('M5',),
+                'qs': (1,)
+            }
+        ]
+
+    },
+    {
+        'ws': LWS5_EUCLID,
+        'ws_params':{
+            'lvls':(2515,2625,2720),
+            'us_lvl': 2770,
+            'ds_lvl': None,
+            'grid_dir': 1,
+            'hold_pos': False
         },
         'dts': [
             {
