@@ -52,3 +52,38 @@ def add_static_channel(df:pd.DataFrame,period=60):
     df['top_line'] = df['close'].rolling(period,1).quantile(0.9)
     df['bottom_line'] = df['close'].rolling(period,1).quantile(0.1)
     return df
+
+def add_nlevels_fractal(df,n=3,min_step=0.1,buff=0.05,offset=1):
+    """add top_n and bot_n"""
+    df = df.copy()
+    top_lvl_raw = []
+    bot_lvl_raw = []
+    top_lvl = []
+    bot_lvl = []
+    for i in range(len(df)-1,0,-1):
+        row = df.iloc[i]
+        if row['fractal_up']:
+            if row['high'] >= df['high'].iloc[i:len(df)-offset-1].max():
+                top_lvl_raw.append(row['high']-row['high']*buff/100)
+        if row['fractal_down']:
+            if row['low'] <= df['low'].iloc[i:len(df)-offset-1].min():
+                bot_lvl_raw.append(row['low']+row['low']*buff/100)
+    for lvl in top_lvl_raw:
+        if len(top_lvl) == 0:
+            top_lvl.append(lvl)
+        elif len(top_lvl) >= n:
+            break
+        elif abs(1 - lvl/top_lvl[-1])*100 > min_step:
+            top_lvl.append(lvl)
+    for lvl in bot_lvl_raw:
+        if len(bot_lvl) == 0:
+            bot_lvl.append(lvl)
+        elif len(bot_lvl) >= n:
+            break
+        elif abs(1 - bot_lvl[-1]/lvl)*100 > min_step:
+            bot_lvl.append(lvl)
+    for i,lvl in enumerate(top_lvl):
+        df['top_'+str(i)] = lvl
+    for i,lvl in enumerate(bot_lvl):
+        df['bot_'+str(i)] = lvl
+    return df
