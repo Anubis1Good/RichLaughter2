@@ -225,3 +225,14 @@ def get_order_by_trans_id(qp_provider: QuikPy, trans_id: int) -> Optional[str]:
             return order
 
     return None
+
+@provider
+def get_result_futures(qp_provider:QuikPy,sec_code):
+    '''получение маржи по фьючерсам из таблицы
+    первое значение текущая маржа, второе общая маржа
+    '''
+    active_futures_holdings = [futuresHolding for futuresHolding in qp_provider.get_futures_holdings()['data']]
+    for afh in active_futures_holdings:
+        if afh['sec_code'] == sec_code:
+            return afh['varmargin'], afh['total_varmargin']
+    return 0

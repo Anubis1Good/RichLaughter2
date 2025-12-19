@@ -23,53 +23,34 @@ bot_on_ticker = [
     #     ]
 
     # },
-    {
-        'ws': LWS5_MERCATUS,
-        'ws_params':{
-            'start':10.660,
-            'end':11.270,
-            'amount_lvl': 5,
-            'us_lvl': 11.450,
-            'ds_lvl': None,
-            'grid_dir': 1,
-            'hold_pos': False
-        },
-        'dts': [
-            {
-                'ss':('CNYRUBF',),
-                'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
-
-    },
-    {
-        'ws': LWS5_EUCLID,
-        'ws_params':{
-            'lvls':(2515,2625,2720),
-            'us_lvl': 2770,
-            'ds_lvl': None,
-            'grid_dir': 1,
-            'hold_pos': False
-        },
-        'dts': [
-            {
-                'ss':('IMOEXF',),
-                'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
-
-    },
     # {
-    #     'ws': LWS5_CADUCEUS,
+    #     'ws': LWS5_MERCATUS,
     #     'ws_params':{
-    #         'start':2608,
-    #         'end':2675,
-    #         'amount_lvl': 3,
-    #         'us_lvl': 2690,
+    #         'start':10.660,
+    #         'end':11.300,
+    #         'amount_lvl': 5,
+    #         'us_lvl': 11.430,
     #         'ds_lvl': None,
     #         'grid_dir': 1,
+    #         'hold_pos': False
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('CNYRUBF',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
+
+    # },
+    # {
+    #     'ws': LWS5_EUCLID,
+    #     'ws_params':{
+    #         'lvls':(2515,2625,2720),
+    #         'us_lvl': 2770,
+    #         'ds_lvl': None,
+    #         'grid_dir': 1,
+    #         'hold_pos': False
     #     },
     #     'dts': [
     #         {
@@ -80,6 +61,24 @@ bot_on_ticker = [
     #     ]
 
     # },
+    {
+        'ws': LWS5_EUCLID,
+        'ws_params':{
+            'lvls':(118.78,124.02),
+            'us_lvl': 130.51,
+            'ds_lvl': None,
+            'grid_dir': 1,
+            'hold_pos': False
+        },
+        'dts': [
+            {
+                'ss':('GAZPF',),
+                'tfs':('M5',),
+                'qs': (1,)
+            }
+        ]
+    },
+    
     # {
     #     'ws': LWS2_PSGSON,
     #     'ws_params':{
@@ -122,7 +121,10 @@ def init_trader() -> list[QuikTrader]:
     for conf_ws in bot_on_ticker:
         ws = (conf_ws['ws'],conf_ws['ws_params'])
         for dt in conf_ws['dts']:
-            print(dt['ss'],dt['tfs'],ws)
-            bot = QuikTrader(dt['ss'],dt['tfs'],dt['qs'],ws,need_debug=True,close_on_time=False)
+            close_on_time = dt.get('close_on_time',False)
+            cur_margin = dt.get('cur_margin',True)
+            stop_risk = dt.get('stop_risk',None)
+            print(dt['ss'],dt['tfs'],ws,'close_on_time:',close_on_time,'stop_risk:',stop_risk,'cur_margin',cur_margin)
+            bot = QuikTrader(dt['ss'],dt['tfs'],dt['qs'],ws,need_debug=True,close_on_time=close_on_time,stop_risk=stop_risk,cur_margin=cur_margin)
             bots.append(bot)
     return bots

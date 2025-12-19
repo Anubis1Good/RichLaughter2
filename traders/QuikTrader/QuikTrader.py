@@ -4,7 +4,7 @@ from time import sleep,time
 from datetime import datetime
 from typing import Dict, List
 from traders.TraderBase import TraderBase
-from traders.QuikTrader.help_funcs import get_bars,get_best_glass,get_pos_futures,close_active_order,send_transaction,get_code_orders,smart_close_active_order,get_order_by_trans_id
+from traders.QuikTrader.help_funcs import get_bars,get_best_glass,get_pos_futures,close_active_order,send_transaction,get_code_orders,smart_close_active_order,get_order_by_trans_id,get_result_futures
 from wss.WSBase import WSBase
 
 class QuikTrader(TraderBase):
@@ -13,12 +13,18 @@ class QuikTrader(TraderBase):
                 timeframes:List[str|int],
                 quantity:List[int],
                 ws:WSBase = (WSBase,dict()),
-                sufix_debug='QT', 
-                need_debug=False,
-                amount_bars=200,
+                sufix_debug:str='QT', 
+                need_debug:bool=False,
+                amount_bars:int=200,
                 class_codes:str|List[str]='SPBFUT',
-                close_on_time=True,
-                close_map=((22,30),(22,30),(22,30),(22,30),(22,30),(17,30),(17,30),)):
+                close_on_time:bool=True,
+                close_map:tuple=((22,30),(22,30),(22,30),(22,30),(22,30),(17,30),(17,30),),
+                stop_risk:int|float|None=None,
+                cur_margin:bool=True
+                ):
+        """
+        stop_risk = 500
+        """
         super().__init__(symbols, timeframes, quantity, ws, sufix_debug, need_debug)
         self.amount_bars = amount_bars
         if isinstance(class_codes,str):
@@ -45,7 +51,8 @@ class QuikTrader(TraderBase):
         self.symbol_range = range(len(self.symbols))
         self.time_forgot_order = 0
         self.first_forgot = False
-
+        self.index_margin = 1 if cur_margin else 0
+        self.stop_risk = -stop_risk if stop_risk is not None else False
 
     def start_info(self):
         print('QuikTrader')
@@ -54,7 +61,10 @@ class QuikTrader(TraderBase):
         pass
     
     def _check_risk(self):
-        pass
+        margin_total = 0
+        for symbol in self.symbols:
+            margin_total += get_result_futures(symbol)[self.index_margin]
+        return margin_total > self.stop_risk
 
     def _check_time(self):
         now = datetime.now()
@@ -228,6 +238,9 @@ class QuikTrader(TraderBase):
                 need_pos = self.ws()
                 if time_mode == -1 and self.close_on_time: #close_all
                     need_pos = {s: 0 for s in self.symbols}
+                if self.stop_risk: #risk_management
+                    if not self._check_risk():
+                        need_pos = {s: 0 for s in self.symbols}
                 for i in self.symbol_range:
                     symbol = self.symbols[i]
                     npos = need_pos[symbol]

@@ -2,12 +2,16 @@ from time import sleep
 from wss.help_wss.CloseWS import CloseWS
 from traders.QuikTrader.QuikTrader import QuikTrader
 symbols = [
-    'MMZ5',
     'IMOEXF',
-    'SRZ5',
-    'GZZ5',
-    'CRZ5',
-    'CNYRUBF'
+    # 'MMH6',
+    # 'CNYRUBF',
+    # 'CRH6',
+    # 'GAZPF',
+    # 'GZH6',
+    # 'SBERF',
+    # 'SRH6',
+    # 'GLDRUBF',
+    # 'GLH6'
 ]
 quntities = [1 for s in symbols]
 bot = QuikTrader(symbols,['M5'],quntities,(CloseWS,dict()))

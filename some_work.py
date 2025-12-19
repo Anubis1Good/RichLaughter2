@@ -1,11 +1,11 @@
 import os
 from traders.TestTrader.TestTrader import TestTrader
-# from wss.LWS.LWS1 import LWS2_SWIMIGSON as WSS
+from wss.help_wss.OpenWS import OpenWS as WSS
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.PSWS.PSWS1 import PSWS1_ as WSS
-from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
+# from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
 # from wss.PWS.PWS1 import PWS1_GRIDC as WSS
 #     {
 #     'period':50,
@@ -37,13 +37,7 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':10.660,
-            'end':11.270,
-            'amount_lvl': 5,
-            'us_lvl': 11.450,
-            'ds_lvl': None,
-            'grid_dir': 1,
-            'hold_pos': False
+            'need_pos':1
     }
     ),
     charts={'5min':charts},
@@ -52,7 +46,7 @@ tt1 = TestTrader(
     #     'MMZ5':'data_for_tests\data_from_moex5\_5MMZ5_1_1763404355.parquet'
     #     }},
 
-    close_on_time=False
+    close_on_time=True
 
 )
 # tt1 = TestTrader(
