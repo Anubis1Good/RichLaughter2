@@ -235,4 +235,4 @@ def get_result_futures(qp_provider:QuikPy,sec_code):
     for afh in active_futures_holdings:
         if afh['sec_code'] == sec_code:
             return afh['varmargin'], afh['total_varmargin']
-    return 0
+    return 0, 0

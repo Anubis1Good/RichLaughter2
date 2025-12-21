@@ -51,7 +51,7 @@ class QuikTrader(TraderBase):
         self.symbol_range = range(len(self.symbols))
         self.time_forgot_order = 0
         self.first_forgot = False
-        self.index_margin = 1 if cur_margin else 0
+        self.index_margin = 0 if cur_margin else 1
         self.stop_risk = -stop_risk if stop_risk is not None else False
 
     def start_info(self):
@@ -73,12 +73,14 @@ class QuikTrader(TraderBase):
         if chour > 8:
             if chour >= self.close_time[0] - 1:
                 if cminute > self.close_time[1]:
-                    if chour == self.close_time[0]:
+                    if chour >= self.close_time[0]:
                         return -1
                     else:
                         return -2
                 elif chour == self.close_time[0]:
                     return -2
+                elif chour > self.close_time[0]:
+                    return -1
             return 1
         return 0
     

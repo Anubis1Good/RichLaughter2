@@ -68,17 +68,16 @@ class TestTrader(TraderBase):
                 'total':0,
                 'count':0, #количество разворотов
                 'amount':0, #размер сделок
-                'fees': 0, #комиссия в ???
+                'fees': 0, #комиссия абсолютная
                 'total_wfees_per':0, #прибыль в процентах с учетом комиссии
                 'equity':[0], #динамика дохода
                 'equity_fee':[0], #динамика дохода с комиссией
-                # 'equity_vtb':[0], #динамика дохода с комиссией vtb
                 'step_eq_fee':[0], #equity каждый шаг
                 'unclosed_fee':[0], #equity незакрытый каждый шаг
                 'step_eq_vtb':[0], #equity каждый шаг
                 'unclosed_vtb':[0], #equity незакрытый каждый шаг
                 'pos':0, #текущая позиция
-                'hist_pos':[],
+                'hist_pos':[0], # ??? добавил 0 ??? нужно ли ???
                 'mp':0, #текущая цена
                 'o_longs':[], #входы в лонг
                 'o_shorts':[], #входы в шорт
@@ -167,7 +166,7 @@ class TestTrader(TraderBase):
                     self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
             else:
                 self.trade_data[s]['step_eq_vtb'].append(self.trade_data[s]['step_eq_vtb'][-1])
-            self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1])
+            self.trade_data[s]['step_eq_fee'].append(self.trade_data[s]['equity'][-1]) # why not equity_fee???
             self.trade_data[s]['total'] += self.trade_data[s]['equity'][-1]
             self.trade_data[s]['hist_pos'].append(self.trade_data[s]['pos'])
             if self.trade_data[s]['pos'] > 0:
