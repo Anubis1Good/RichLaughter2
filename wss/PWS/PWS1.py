@@ -1,6 +1,6 @@
 import pandas as pd
 from wss.WSBase import WSBase
-from indicators.classic_ind import add_donchan_channel
+from indicators.classic_ind import add_donchan_channel,add_atr
 
 
 #Исправить дребезжание
@@ -205,4 +205,105 @@ class PWS1_PRGDC(WSBase):
         for s in self.last_dfs[tf1]:
             row = self.last_dfs[tf1][s].iloc[-1]   
             self.grid_func(row,s)
+        return self.need_pos
+
+class PWS2_DIRDC(WSBase):
+    "направленный DDC"
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        #enter = 0-center 1-edge 
+        """
+        parameters = {
+            'period':50,
+            'dir': 0,
+            'enter': 1,
+            'defense': True
+        }
+        """
+        self.period = parameters['period']
+        self.dir = parameters['dir']
+        self.enter = parameters['enter']
+        self.defense = parameters['defense']
+    
+    def preprocessing(self, dfs, poss):
+        self.last_dfs = dfs.copy()
+        self.update_poss_mps(poss)
+        for t in dfs:
+            for s in dfs[t]:
+                df:pd.DataFrame = dfs[t][s]
+                df = add_donchan_channel(df,self.period)
+        return self.last_dfs
+
+    def __call__(self, *args, **kwds):
+        tf1 = self.timeframes[0]
+        for s in self.last_dfs[tf1]:
+            row = self.last_dfs[tf1][s].iloc[-1]   
+            if self.dir == 1:
+                enter = 'average' if self.enter == 0 else 'min_hb'
+                if row['low'] <= row[enter]:
+                    self.need_pos[s] = 1 if self.defense else 0
+                elif row['high'] >= row['max_hb']:
+                    self.need_pos[s] = 0 if self.defense else 1
+            elif self.dir == -1:
+                enter = 'average' if self.enter == 0 else 'max_hb'
+                if row['low'] <= row['min_hb']:
+                    self.need_pos[s] = 0 if self.defense else -1
+                elif row['high'] >= row[enter]:
+                    self.need_pos[s] = -1 if self.defense else 0
+            else:
+                if row['low'] <= row['min_hb']:
+                    self.need_pos[s] = 1 if self.defense else -1
+                elif row['high'] >= row['max_hb']:
+                    self.need_pos[s] = -1 if self.defense else 1
+        return self.need_pos
+
+# TODO есть какие-то проблемы
+class PWS2_DIRATR(WSBase):
+    "направленный ATR"
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        """
+        parameters = {
+            'period':5,
+            'dir': 0,
+            'n_atr': 3,
+            'defense': True
+        }
+        """
+        self.period = parameters['period']
+        self.dir = parameters['dir']
+        self.n_atr = parameters['n_atr']
+        self.defense = parameters['defense']
+    
+    def preprocessing(self, dfs, poss):
+        self.last_dfs = dfs.copy()
+        self.update_poss_mps(poss)
+        for t in dfs:
+            for s in dfs[t]:
+                df:pd.DataFrame = dfs[t][s]
+                df = add_atr(df,self.period)
+                df['prev_close'] = df['close'].shift(1)
+                df['top_line'] = df['prev_close'] + df['atr'] * self.n_atr
+                df['bottom_line'] = df['prev_close'] - df['atr'] * self.n_atr
+        return self.last_dfs
+
+    def __call__(self, *args, **kwds):
+        tf1 = self.timeframes[0]
+        for s in self.last_dfs[tf1]:
+            row = self.last_dfs[tf1][s].iloc[-1]   
+            if self.dir == 1:
+                if row['close'] <= row['bottom_line']:
+                    self.need_pos[s] = 1 if self.defense else 0
+                elif row['close'] >= row['top_line']:
+                    self.need_pos[s] = 0 if self.defense else 1
+            elif self.dir == -1:
+                if row['close'] <= row['bottom_line']:
+                    self.need_pos[s] = 0 if self.defense else -1
+                elif row['close'] >= row['top_line']:
+                    self.need_pos[s] = -1 if self.defense else 0
+            else:
+                if row['close'] <= row['bottom_line']:
+                    self.need_pos[s] = 1 if self.defense else -1
+                elif row['close'] >= row['top_line']:
+                    self.need_pos[s] = -1 if self.defense else 1
         return self.need_pos

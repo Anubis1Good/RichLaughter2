@@ -1,4 +1,5 @@
 import os
+import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
 from wss.help_wss.OpenWS import OpenWS as WSS
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
@@ -6,7 +7,7 @@ from wss.help_wss.OpenWS import OpenWS as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.PSWS.PSWS1 import PSWS1_ as WSS
 # from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
-# from wss.PWS.PWS1 import PWS1_GRIDC as WSS
+from wss.PWS.PWS1 import PWS2_DIRATR as WSS
 #     {
 #     'period':50,
 #     'amount_lvl': 2,
@@ -24,7 +25,7 @@ folder_charts = 'data_for_tests\data_from_moex5'
 charts_list = os.listdir(folder_charts)
 # symbols = ('IMOEXF','MMZ5')
 symbols = ('IMOEXF',)
-symbols = ('CNYRUBF',)
+# symbols = ('CNYRUBF',)
 charts = {s: None for s in symbols}
 for chart in charts_list:
     for s in symbols:
@@ -37,7 +38,10 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'need_pos':1
+            'period':5,
+            'dir': 0,
+            'n_atr': 1,
+            'defense': False
     }
     ),
     charts={'5min':charts},
@@ -96,7 +100,17 @@ tt1.print_statistics(symbols[0])
 # tt1.plot_chart_and_sequtity('IMOEXF')
 # tt1.plot_chart_and_sequtity('IMOEXF',help_info='pos')
 tt1.plot_chart_and_sequtity(symbols[0],help_info='complex')
+# df = tt1.charts[symbols[0]]
+# from indicators.classic_ind import add_donchan_channel,add_atr
 
+# df = add_atr(df,tt1.ws.period)
+# df['prev_close'] = df['close'].shift(1)
+# df['top_line'] = df['prev_close'] + df['atr'] * tt1.ws.n_atr
+# df['bottom_line'] = df['prev_close'] - df['atr'] * tt1.ws.n_atr
+
+# plt.plot(df['top_line'])
+# plt.plot(df['bottom_line'])
+# plt.show()
 
 
 
