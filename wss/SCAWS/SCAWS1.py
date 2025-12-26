@@ -37,3 +37,62 @@ class SCAWS1_mini(WSBase):
     #         return 'long_pw'
     #     if row['high'] > row['sma']and not self.go_long and row['dynamic_sma'] < 0:
     #         return 'short_pw'
+
+class SCAWS2_SHARKNADO(WSBase):
+    """стратегия типа STA_mini для RL2"""
+    def __init__(self, symbols, timeframes, positions, middle_price, parameters):
+        """
+        parameters = {
+            'period_sma':50,
+            'grid_dir':0,
+            'amount_lvl': 3,
+            'percent_step': 0.1 #%
+        }
+        """
+        super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        self.period_sma = parameters['period_sma']
+        self.amount_lvl = parameters['amount_lvl']
+        self.percent_step = parameters['percent_step'] * 0.01
+        self.long_pos = 1 if parameters['grid_dir'] > -1 else 0
+        self.short_pos = -1 if parameters['grid_dir'] < 1 else 0
+
+    def preprocessing(self, dfs, poss):
+        self.update_poss_mps(poss)
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        
+        for s in dfs[tf1]:
+            df = dfs[tf1][s].copy()
+            df['sma'] = df['close'].rolling(self.period_sma).mean()
+            for i in range(1,self.amount_lvl):
+                df['top_'+str(i)] = df['sma'] + df['close'] * i * self.percent_step 
+                df['bot_'+str(i)] = df['sma'] - df['close'] * i * self.percent_step
+            self.last_dfs[tf1][s] = df
+        return self.last_dfs
+
+    def __call__(self, *args, **kwds):
+        tf1 = self.timeframes[0]
+        for s in self.last_dfs[tf1]:
+            row = self.last_dfs[tf1][s].iloc[-1]
+            new_pos = 0
+            cur_dir = 0
+            for col in self.last_dfs[tf1][s].columns.to_list():
+                if 'top_' in col:
+                    if row['close'] > row[col]:
+                        new_pos += self.long_pos
+                        cur_dir = -1
+                if 'bot_' in col:
+                    if row['close'] < row[col]:
+                        new_pos += self.short_pos
+                        cur_dir = 1
+            if new_pos < 0:
+                if self.positions[s] == new_pos - 1:
+                    new_pos = None
+            elif new_pos > 0:
+                if self.positions[s] == new_pos + 1:
+                    new_pos = None
+            elif cur_dir == 0:
+                new_pos = None
+            self.need_pos[s] = new_pos
+
+        return self.need_pos

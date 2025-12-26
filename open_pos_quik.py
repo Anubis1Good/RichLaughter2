@@ -2,26 +2,41 @@ from time import sleep
 from wss.help_wss.OpenWS import OpenWS
 from traders.QuikTrader.QuikTrader import QuikTrader
 confs = [
-    {
-        'symbols':['CNYRUBF',],
-        'quntities':[1,],
-        'params':{'need_pos':0}
-    },
-    {
-        'symbols':['CRH6',],
-        'quntities':[1,],
-        'params':{'need_pos':3}
-    },
-    {
-        'symbols':['IMOEXF',],
-        'quntities':[1,],
-        'params':{'need_pos':0}
-    },
-    {
-        'symbols':['MMH6',],
-        'quntities':[1,],
-        'params':{'need_pos':1}
-    },
+    # {
+    #     'symbols':['CNYRUBF',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-3}
+    # },
+    # {
+    #     'symbols':['CRH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':3}
+    # },
+    # {
+    #     'symbols':['IMOEXF',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-1}
+    # },
+    # {
+    #     'symbols':['MMH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':1}
+    # },
+    # {
+    #     'symbols':['GLDRUBF',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-2}
+    # },
+    # {
+    #     'symbols':['GLH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':2}
+    # },
+    # {
+    #     'symbols':['BRF6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':1}
+    # },
 ]
 bots = []
 for conf in confs:

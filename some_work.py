@@ -1,13 +1,14 @@
 import os
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
-from wss.help_wss.OpenWS import OpenWS as WSS
+from wss.help_wss.OpenWS import OpenWSCondition as WSS
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.PSWS.PSWS1 import PSWS1_ as WSS
 # from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
-from wss.PWS.PWS1 import PWS2_DIRATR as WSS
+# from wss.PWS.PWS1 import PWS2_DIRATR as WSS
+# from wss.SCAWS.SCAWS1 import SCAWS2_SHARKNADO as WSS
 #     {
 #     'period':50,
 #     'amount_lvl': 2,
@@ -38,11 +39,11 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'period':5,
-            'dir': 0,
-            'n_atr': 1,
-            'defense': False
-    }
+            'need_pos_up':0,
+            'need_pos_down':1,
+            'condition_up': 2700,
+            'condition_down': 2500
+        }
     ),
     charts={'5min':charts},
     # charts={'5min':{
@@ -50,7 +51,7 @@ tt1 = TestTrader(
     #     'MMZ5':'data_for_tests\data_from_moex5\_5MMZ5_1_1763404355.parquet'
     #     }},
 
-    close_on_time=True
+    close_on_time=False
 
 )
 # tt1 = TestTrader(
@@ -98,7 +99,7 @@ tt1.check_window_fast()
 tt1.print_statistics(symbols[0])
 # tt1.print_statistics('MMZ5')
 # tt1.plot_chart_and_sequtity('IMOEXF')
-# tt1.plot_chart_and_sequtity('IMOEXF',help_info='pos')
+# tt1.plot_chart_and_sequtity(symbols[0],help_info='pos')
 tt1.plot_chart_and_sequtity(symbols[0],help_info='complex')
 # df = tt1.charts[symbols[0]]
 # from indicators.classic_ind import add_donchan_channel,add_atr
