@@ -2,12 +2,13 @@ from time import sleep
 from wss.help_wss.CloseWS import CloseWS
 from traders.QuikTrader.QuikTrader import QuikTrader
 symbols = [
-    'IMOEXF',
+    # 'IMOEXF',
     # 'MMH6',
     # 'CNYRUBF',
     # 'CRH6',
     # 'GAZPF',
     # 'GZH6',
+    # 'RMH6',
     # 'SBERF',
     # 'SRH6',
     # 'GLDRUBF',

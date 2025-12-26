@@ -6,6 +6,7 @@ from typing import Dict, List
 from traders.TraderBase import TraderBase
 from traders.QuikTrader.help_funcs import get_bars,get_best_glass,get_pos_futures,close_active_order,send_transaction,get_code_orders,smart_close_active_order,get_order_by_trans_id,get_result_futures
 from wss.WSBase import WSBase
+from utils.help_trade import funding_map
 
 class QuikTrader(TraderBase):
     def __init__(self, 
@@ -20,7 +21,8 @@ class QuikTrader(TraderBase):
                 close_on_time:bool=True,
                 close_map:tuple=((22,30),(22,30),(22,30),(22,30),(22,30),(17,30),(17,30),),
                 stop_risk:int|float|None=None,
-                cur_margin:bool=True
+                cur_margin:bool=True,
+                close_ff:bool=True
                 ):
         """
         stop_risk = 500
@@ -53,6 +55,12 @@ class QuikTrader(TraderBase):
         self.first_forgot = False
         self.index_margin = 0 if cur_margin else 1
         self.stop_risk = -stop_risk if stop_risk is not None else False
+        self.close_ff = close_ff
+        self.funding = False
+        for s in funding_map:
+            for symbol in self.symbols:
+                if symbol in s:
+                    self.funding = True
 
     def start_info(self):
         print('QuikTrader')
@@ -71,6 +79,8 @@ class QuikTrader(TraderBase):
         chour = now.hour
         cminute = now.minute
         if chour > 8:
+            if chour == 18 and cminute > 20:
+                return -3
             if chour >= self.close_time[0] - 1:
                 if cminute > self.close_time[1]:
                     if chour >= self.close_time[0]:
@@ -247,10 +257,13 @@ class QuikTrader(TraderBase):
                     symbol = self.symbols[i]
                     npos = need_pos[symbol]
                     pos = poss[symbol]['pos']
-                    if time_mode == -2 and self.close_on_time: #only close
-                        if npos is not None:
-                            if abs(npos) > abs(pos):
-                                npos = pos
+                    if self.close_on_time:
+                        if time_mode == -2: #only close
+                            if npos is not None:
+                                if abs(npos) > abs(pos):
+                                    npos = pos
+                        elif time_mode == -3 and self.funding:
+                            need_pos = {s: 0 for s in self.symbols}
                     self._work_ws(symbol,npos,pos,i)
         except Exception as err:
             print(datetime.now(),self.symbols,f"!!!! {type(err).__name__}: {err} !!!!")
