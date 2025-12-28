@@ -15,7 +15,7 @@ confs = [
     # {
     #     'symbols':['IMOEXF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-1}
+    #     'params':{'need_pos':-2}
     # },
     # {
     #     'symbols':['MMH6',],

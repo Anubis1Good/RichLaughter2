@@ -983,7 +983,9 @@ class TestTrader(TraderBase):
         """Создаем фигуру с двумя subplot'ами
             Варианты:
             'step_equity'
-            'pos'
+            'pos',
+            'complex',
+            'couple_complex'
         """
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)  # sharex=True для синхронизации по оси X
         
@@ -997,12 +999,26 @@ class TestTrader(TraderBase):
             sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
         elif help_info == 'pos':
             sequity = self.trade_data[symbol]['hist_pos']
+        elif help_info == 'couple_pos':
+            sequity = self.trade_data[self.symbols[0]]['hist_pos']
+            ax2.plot(sequity)
+            sequity = self.trade_data[self.symbols[1]]['hist_pos']
         elif help_info == 'unclosed':
             sequity = self.trade_data[symbol]['unclosed_vtb'] if vtb else self.trade_data[symbol]['unclosed_fee']
         elif help_info == 'complex':
             sequity = self.trade_data[symbol]['unclosed_vtb'] if vtb else self.trade_data[symbol]['unclosed_fee']
             ax2.plot(sequity)
             sequity = self.trade_data[symbol]['step_eq_vtb'] if vtb else self.trade_data[symbol]['step_eq_fee']
+        elif help_info == 'couple_complex':
+            sequity_col = 'unclosed_vtb' if vtb else 'unclosed_fee'
+            sequity = np.zeros(len(self.trade_data[symbol][sequity_col]))
+            for s in self.symbols:
+                sequity += np.array(self.trade_data[s][sequity_col])
+            ax2.plot(sequity)
+            sequity_col = 'step_eq_vtb' if vtb else 'step_eq_fee'
+            sequity = np.zeros(len(self.trade_data[symbol][sequity_col]))
+            for s in self.symbols:
+                sequity += np.array(self.trade_data[s][sequity_col])
         else:
             sequity = np.array([])
         ax2.plot(sequity)
