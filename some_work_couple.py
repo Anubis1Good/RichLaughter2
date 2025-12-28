@@ -2,7 +2,8 @@ import os
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
 # from wss.help_wss.OpenWS import OpenWSCondition as WSS
-from wss.LWS.LWS2a import LWS8_SINGULARITY as WSS
+from wss.LWS.LWS2a import LWS8_GRAVITON as WSS
+# from wss.LWS.LWS2a import LWS8_SINGULARITY as WSS
 
 #     {
 #     'period':50,
@@ -34,14 +35,15 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':2500,
-            'end':2700,
+            'start':2400,
+            'end':2800,
             'amount_lvl': 10,
             'uh_lvl': 2860,
-            'dh_lvl': 2460,
-            'first_long': True,
-            'keep_hedge':True,
-            'keep_pos':False
+            'dh_lvl': 2360,
+            'first_long': False,
+            'keep_hedge':False,
+            'keep_pos':False,
+            'last_point':True
         }
     ),
     charts={'5min':charts},
