@@ -22,16 +22,16 @@ confs = [
     #         'condition_down': None
     #     }
     # },
-    {
-        'symbols':['IMOEXF',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':None,
-            'need_pos_down':0,
-            'condition_up': None,
-            'condition_down': 2751
-        }
-    },
+    # {
+    #     'symbols':['IMOEXF',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':None,
+    #         'need_pos_down':0,
+    #         'condition_up': None,
+    #         'condition_down': 2751
+    #     }
+    # },
     # {
     #     'symbols':['MMH6',],
     #     'quntities':[1,],
@@ -42,33 +42,33 @@ confs = [
     #         'condition_down': None
     #     }
     # },
-    {
-        'symbols':['RMH6',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':None,
-            'need_pos_down':0,
-            'condition_up': None,
-            'condition_down': 1118
-        }
-    },
-    {
-        'symbols':['GAZPF',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':None,
-            'need_pos_down':0,
-            'condition_up': None,
-            'condition_down': 126.31
-        }
-    },
+    # {
+    #     'symbols':['RMH6',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':None,
+    #         'need_pos_down':0,
+    #         'condition_up': None,
+    #         'condition_down': 1118
+    #     }
+    # },
+    # {
+    #     'symbols':['GAZPF',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':None,
+    #         'need_pos_down':0,
+    #         'condition_up': None,
+    #         'condition_down': 124.75
+    #     }
+    # },
     # {
     #     'symbols':['GZH6',],
     #     'quntities':[1,],
     #     'params':{
-    #         'need_pos_up':0,
+    #         'need_pos_up':-1,
     #         'need_pos_down':None,
-    #         'condition_up': 13145,
+    #         'condition_up': 13040,
     #         'condition_down': None
     #     }
     # },

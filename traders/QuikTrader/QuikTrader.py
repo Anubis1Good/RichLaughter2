@@ -152,6 +152,8 @@ class QuikTrader(TraderBase):
         for s in self.symbols:
             if self.orders_start[s]:
                 last_order_id = self.last_order_id[s]
+                if last_order_id is None:
+                    return True
                 last_order = get_order_by_trans_id(last_order_id)
                 if not last_order:
                     print(datetime.now(),s, 'not see last order:', last_order_id)

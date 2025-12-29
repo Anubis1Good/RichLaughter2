@@ -16,7 +16,8 @@ bot_on_ticker = [
             'first_long': False,
             'keep_hedge':True,
             'keep_pos':False,
-            'last_point':True
+            'last_point':True,
+            'keep_start_pos':False
         },
         'dts': [
             {
@@ -38,6 +39,57 @@ bot_on_ticker = [
         'dts': [
             {
                 'ss':('GLDRUBF','GLH6',),
+                'tfs':('M5',),
+                'qs': (1,1,)
+            }
+        ]
+
+    },
+    {
+        'ws': APSWS1_DYNAMO,
+        'ws_params':{
+            'first_long': True,
+            'funding': True,
+            'hour_fund':18,
+            'minute_fund':20
+        },
+        'dts': [
+            {
+                'ss':('IMOEXF','MMH6',),
+                'tfs':('M5',),
+                'qs': (1,1,)
+            }
+        ]
+
+    },
+    {
+        'ws': APSWS1_DYNAMO,
+        'ws_params':{
+            'first_long': True,
+            'funding': True,
+            'hour_fund':18,
+            'minute_fund':20
+        },
+        'dts': [
+            {
+                'ss':('SBERF','SRH6',),
+                'tfs':('M5',),
+                'qs': (1,1,)
+            }
+        ]
+
+    },
+    {
+        'ws': APSWS1_DYNAMO,
+        'ws_params':{
+            'first_long': True,
+            'funding': True,
+            'hour_fund':18,
+            'minute_fund':20
+        },
+        'dts': [
+            {
+                'ss':('GAZPF','GZH6',),
                 'tfs':('M5',),
                 'qs': (1,1,)
             }

@@ -2,8 +2,8 @@ import os
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
 # from wss.help_wss.OpenWS import OpenWSCondition as WSS
-# from wss.LWS.LWS2a import LWS8_SINGULARITY as WSS
-from wss.APSWS.APSWS1a import APSWS1_ as WSS
+from wss.LWS.LWS2a import LWS8_GRAVITON as WSS
+# from wss.APSWS.APSWS1a import APSWS1_ as WSS
 
 #     {
 #     'period':50,
@@ -35,10 +35,16 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'first_long': True,
-            'funding': True,
-            'hour_fund':18,
-            'minute_fund':40
+            'start':2500,
+            'end':2850,
+            'amount_lvl': 5,
+            'uh_lvl': 3100,
+            'dh_lvl': 2400,
+            'first_long': False,
+            'keep_hedge':True,
+            'keep_pos':False,
+            'last_point':True,
+            'keep_start_pos':True
         }
     ),
     charts={'5min':charts},
@@ -48,6 +54,10 @@ tt1 = TestTrader(
 )
 
 tt1.reload_data()
+tt1.trade_data['IMOEXF']['pos'] = -5
+tt1.trade_data['IMOEXF']['mp'] = 2400
+tt1.trade_data['MMZ5']['pos'] = 5
+tt1.trade_data['MMZ5']['mp'] = 2450
 tt1.check_window_fast()
 # # Печать статистики
 tt1.print_statistics(symbols[0])

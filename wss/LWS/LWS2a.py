@@ -15,7 +15,8 @@ class LWS8_SINGULARITY(WSBase):
             'first_long': False,
             'keep_hedge':True,
             'keep_pos':False,
-            'last_point':False
+            'last_point':True,
+            'keep_start_pos':False
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -31,6 +32,9 @@ class LWS8_SINGULARITY(WSBase):
         self.first_long = parameters['first_long']
         self.keep_hedge = parameters['keep_hedge']
         self.keep_pos = parameters.get('keep_pos',False)
+        self.keep_start_pos = parameters.get('keep_start_pos',False)
+        self.have_start_pos = False
+        self.first_check = True
         self.in_work = True
     
     def get_need_pos(self,pos_data):
@@ -50,6 +54,11 @@ class LWS8_SINGULARITY(WSBase):
             if new_pos_short != 0:
                 if cur_pos_s < new_pos_short:
                     new_pos_short = None
+        if self.keep_start_pos and self.have_start_pos:
+            if new_pos_long == 0 or new_pos_short == 0:
+                self.have_start_pos = False
+            else:
+                new_pos_long, new_pos_short = None,None
         need_pos[s_l] = new_pos_long
         need_pos[s_s] = new_pos_short
         return need_pos
@@ -76,6 +85,12 @@ class LWS8_SINGULARITY(WSBase):
     
     def preprocessing(self, dfs, poss):
         self.update_poss_mps(poss)
+        if self.first_check:
+            for s in poss:
+                if abs(poss[s]['pos']) == self.hedge_pos:
+                    self.have_start_pos = True
+                print('LWS8_SINGULARITY:',s,'pos:',poss[s]['pos'],'hedge_pos:',self.hedge_pos,'keep_start_pos:',self.keep_start_pos)
+            self.first_check = False
         tf1 = self.timeframes[0]
         self.last_dfs = {tf1:{}}
         
@@ -108,7 +123,8 @@ class LWS8_GRAVITON(WSBase):
             'first_long': False,
             'keep_hedge':True,
             'keep_pos':False,
-            'last_point':False
+            'last_point':True,
+            'keep_start_pos':False
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -130,6 +146,9 @@ class LWS8_GRAVITON(WSBase):
         self.first_long = parameters['first_long']
         self.keep_hedge = parameters['keep_hedge']
         self.keep_pos = parameters.get('keep_pos',False)
+        self.keep_start_pos = parameters.get('keep_start_pos',False)
+        self.have_start_pos = False
+        self.first_check = True
         self.in_work = True
     
     def get_need_pos(self,pos_data):
@@ -149,6 +168,11 @@ class LWS8_GRAVITON(WSBase):
             if new_pos_short != 0:
                 if cur_pos_s < new_pos_short:
                     new_pos_short = None
+        if self.keep_start_pos and self.have_start_pos:
+            if new_pos_long == 0 or new_pos_short == 0:
+                self.have_start_pos = False
+            else:
+                new_pos_long, new_pos_short = None,None
         need_pos[s_l] = new_pos_long
         need_pos[s_s] = new_pos_short
         return need_pos
@@ -176,6 +200,12 @@ class LWS8_GRAVITON(WSBase):
     
     def preprocessing(self, dfs, poss):
         self.update_poss_mps(poss)
+        if self.first_check:
+            for s in poss:
+                if abs(poss[s]['pos']) == self.hedge_pos:
+                    self.have_start_pos = True
+                print('LWS8_GRAVITON:',s,'pos:',poss[s]['pos'],'hedge_pos:',self.hedge_pos,'keep_start_pos:',self.keep_start_pos)
+            self.first_check = False
         tf1 = self.timeframes[0]
         self.last_dfs = {tf1:{}}
         

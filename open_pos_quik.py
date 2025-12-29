@@ -15,7 +15,7 @@ confs = [
     # {
     #     'symbols':['IMOEXF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-3}
+    #     'params':{'need_pos':0}
     # },
     # {
     #     'symbols':['MMH6',],
@@ -25,12 +25,12 @@ confs = [
     # {
     #     'symbols':['GAZPF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-2}
+    #     'params':{'need_pos':1}
     # },
     # {
     #     'symbols':['GZH6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-2}
+    #     'params':{'need_pos':0}
     # },
     # {
     #     'symbols':['SBERF',],
@@ -41,6 +41,11 @@ confs = [
     #     'symbols':['SRH6',],
     #     'quntities':[1,],
     #     'params':{'need_pos':-2}
+    # },
+    # {
+    #     'symbols':['RMH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':0}
     # },
     # {
     #     'symbols':['GLDRUBF',],
