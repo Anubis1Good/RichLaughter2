@@ -2,16 +2,16 @@ from time import sleep
 from wss.help_wss.OpenWS import OpenWSCondition
 from traders.QuikTrader.QuikTrader import QuikTrader
 confs = [
-    {
-        'symbols':['CNYRUBF',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':None,
-            'need_pos_down':0,
-            'condition_up': None,
-            'condition_down': 10.970
-        }
-    },
+    # {
+    #     'symbols':['CNYRUBF',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':None,
+    #         'need_pos_down':0,
+    #         'condition_up': None,
+    #         'condition_down': 10.970
+    #     }
+    # },
     # {
     #     'symbols':['CRH6',],
     #     'quntities':[1,],
@@ -22,16 +22,16 @@ confs = [
     #         'condition_down': None
     #     }
     # },
-    # {
-    #     'symbols':['IMOEXF',],
-    #     'quntities':[1,],
-    #     'params':{
-    #         'need_pos_up':None,
-    #         'need_pos_down':None,
-    #         'condition_up': None,
-    #         'condition_down': None
-    #     }
-    # },
+    {
+        'symbols':['IMOEXF',],
+        'quntities':[1,],
+        'params':{
+            'need_pos_up':None,
+            'need_pos_down':0,
+            'condition_up': None,
+            'condition_down': 2751
+        }
+    },
     # {
     #     'symbols':['MMH6',],
     #     'quntities':[1,],
@@ -49,19 +49,19 @@ confs = [
             'need_pos_up':None,
             'need_pos_down':0,
             'condition_up': None,
-            'condition_down': 1116
+            'condition_down': 1118
         }
     },
-    # {
-    #     'symbols':['GAZPF',],
-    #     'quntities':[1,],
-    #     'params':{
-    #         'need_pos_up':None,
-    #         'need_pos_down':None,
-    #         'condition_up': None,
-    #         'condition_down': None
-    #     }
-    # },
+    {
+        'symbols':['GAZPF',],
+        'quntities':[1,],
+        'params':{
+            'need_pos_up':None,
+            'need_pos_down':0,
+            'condition_up': None,
+            'condition_down': 126.31
+        }
+    },
     # {
     #     'symbols':['GZH6',],
     #     'quntities':[1,],
@@ -112,16 +112,16 @@ confs = [
     #         'condition_down': None
     #     }
     # },
-    {
-        'symbols':['BRF6',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':0,
-            'need_pos_down':None,
-            'condition_up': 61.69,
-            'condition_down': None
-        }
-    },
+    # {
+    #     'symbols':['BRF6',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':0,
+    #         'need_pos_down':None,
+    #         'condition_up': 61.69,
+    #         'condition_down': None
+    #     }
+    # },
     # {
     #     'symbols':['NGZ5',],
     #     'quntities':[1,],

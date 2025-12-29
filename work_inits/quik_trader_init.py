@@ -1,28 +1,49 @@
 from wss.LWS.LWS2 import LWS5_XPG,LWS5_EUCLID,LWS5_MERCATUS
-
+from wss.LWS.LWS2a import LWS8_SINGULARITY
+from wss.APSWS.APSWS1a import APSWS1_DYNAMO
 
 from traders.QuikTrader.QuikTrader import QuikTrader
 
 bot_on_ticker = [
-    # {
-    #     'ws': LWS1_AUTOGRID,
-    #     'ws_params':{
-    #         'start':11.440,
-    #         'end':11.640,
-    #         'amount_lvl': 10,
-    #         'us_lvl': 11.740,
-    #         'ds_lvl': 11.340,
-    #         'grid_dir': 0,
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('CRZ5',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
+    {
+        'ws': LWS8_SINGULARITY,
+        'ws_params':{
+            'start':10.980,
+            'end':11.140,
+            'amount_lvl': 4,
+            'uh_lvl': 11.200,
+            'dh_lvl': 10.900,
+            'first_long': False,
+            'keep_hedge':True,
+            'keep_pos':False,
+            'last_point':True
+        },
+        'dts': [
+            {
+                'ss':('CNYRUBF','CRH6',),
+                'tfs':('M5',),
+                'qs': (1,1,)
+            }
+        ]
 
-    # },
+    },
+    {
+        'ws': APSWS1_DYNAMO,
+        'ws_params':{
+            'first_long': True,
+            'funding': True,
+            'hour_fund':18,
+            'minute_fund':20
+        },
+        'dts': [
+            {
+                'ss':('GLDRUBF','GLH6',),
+                'tfs':('M5',),
+                'qs': (1,1,)
+            }
+        ]
+
+    },
     # {
     #     'ws': LWS5_MERCATUS,
     #     'ws_params':{
@@ -61,23 +82,23 @@ bot_on_ticker = [
     #     ]
 
     # },
-    {
-        'ws': LWS5_EUCLID,
-        'ws_params':{
-            'lvls':(118.78,124.02),
-            'us_lvl': 130.51,
-            'ds_lvl': None,
-            'grid_dir': 1,
-            'hold_pos': False
-        },
-        'dts': [
-            {
-                'ss':('GAZPF',),
-                'tfs':('M5',),
-                'qs': (1,)
-            }
-        ]
-    },
+    # {
+    #     'ws': LWS5_EUCLID,
+    #     'ws_params':{
+    #         'lvls':(118.78,124.02),
+    #         'us_lvl': 130.51,
+    #         'ds_lvl': None,
+    #         'grid_dir': 1,
+    #         'hold_pos': False
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('GAZPF',),
+    #             'tfs':('M5',),
+    #             'qs': (1,)
+    #         }
+    #     ]
+    # },
     
     # {
     #     'ws': LWS2_PSGSON,

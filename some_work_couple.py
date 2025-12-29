@@ -2,8 +2,8 @@ import os
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
 # from wss.help_wss.OpenWS import OpenWSCondition as WSS
-from wss.LWS.LWS2a import LWS8_GRAVITON as WSS
 # from wss.LWS.LWS2a import LWS8_SINGULARITY as WSS
+from wss.APSWS.APSWS1a import APSWS1_ as WSS
 
 #     {
 #     'period':50,
@@ -35,15 +35,10 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':2400,
-            'end':2800,
-            'amount_lvl': 10,
-            'uh_lvl': 2860,
-            'dh_lvl': 2360,
-            'first_long': False,
-            'keep_hedge':False,
-            'keep_pos':False,
-            'last_point':True
+            'first_long': True,
+            'funding': True,
+            'hour_fund':18,
+            'minute_fund':40
         }
     ),
     charts={'5min':charts},
@@ -59,7 +54,7 @@ tt1.print_statistics(symbols[0])
 tt1.print_statistics(symbols[1])
 full_total = tt1.trade_data[symbols[0]]['step_eq_vtb'][-1] + tt1.trade_data[symbols[1]]['step_eq_vtb'][-1]
 print("Общая прибыль:",full_total)
-# tt1.plot_chart_and_sequtity(symbols[0],help_info='couple_pos')
+tt1.plot_chart_and_sequtity(symbols[0],help_info='couple_pos')
 tt1.plot_chart_and_sequtity(symbols[0],help_info='couple_complex')
 # df = tt1.charts[symbols[0]]
 

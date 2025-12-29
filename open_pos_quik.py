@@ -15,12 +15,32 @@ confs = [
     # {
     #     'symbols':['IMOEXF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-2}
+    #     'params':{'need_pos':-3}
     # },
     # {
     #     'symbols':['MMH6',],
     #     'quntities':[1,],
     #     'params':{'need_pos':1}
+    # },
+    # {
+    #     'symbols':['GAZPF',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-2}
+    # },
+    # {
+    #     'symbols':['GZH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-2}
+    # },
+    # {
+    #     'symbols':['SBERF',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-2}
+    # },
+    # {
+    #     'symbols':['SRH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-2}
     # },
     # {
     #     'symbols':['GLDRUBF',],
@@ -35,7 +55,7 @@ confs = [
     # {
     #     'symbols':['BRF6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':1}
+    #     'params':{'need_pos':0}
     # },
 ]
 bots = []
