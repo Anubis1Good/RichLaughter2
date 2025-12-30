@@ -34,7 +34,7 @@ bot_on_ticker = [
             'first_long': True,
             'funding': True,
             'hour_fund':18,
-            'minute_fund':20
+            'minute_fund':24
         },
         'dts': [
             {
@@ -51,7 +51,7 @@ bot_on_ticker = [
             'first_long': True,
             'funding': True,
             'hour_fund':18,
-            'minute_fund':20
+            'minute_fund':24
         },
         'dts': [
             {
@@ -68,7 +68,7 @@ bot_on_ticker = [
             'first_long': True,
             'funding': True,
             'hour_fund':18,
-            'minute_fund':20
+            'minute_fund':24
         },
         'dts': [
             {
@@ -85,7 +85,7 @@ bot_on_ticker = [
             'first_long': True,
             'funding': True,
             'hour_fund':18,
-            'minute_fund':20
+            'minute_fund':24
         },
         'dts': [
             {
@@ -96,97 +96,7 @@ bot_on_ticker = [
         ]
 
     },
-    # {
-    #     'ws': LWS5_MERCATUS,
-    #     'ws_params':{
-    #         'start':10.660,
-    #         'end':11.300,
-    #         'amount_lvl': 5,
-    #         'us_lvl': 11.430,
-    #         'ds_lvl': None,
-    #         'grid_dir': 1,
-    #         'hold_pos': False
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('CNYRUBF',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
 
-    # },
-    # {
-    #     'ws': LWS5_EUCLID,
-    #     'ws_params':{
-    #         'lvls':(2515,2625,2720),
-    #         'us_lvl': 2770,
-    #         'ds_lvl': None,
-    #         'grid_dir': 1,
-    #         'hold_pos': False
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('IMOEXF',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
-    # {
-    #     'ws': LWS5_EUCLID,
-    #     'ws_params':{
-    #         'lvls':(118.78,124.02),
-    #         'us_lvl': 130.51,
-    #         'ds_lvl': None,
-    #         'grid_dir': 1,
-    #         'hold_pos': False
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('GAZPF',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-    # },
-    
-    # {
-    #     'ws': LWS2_PSGSON,
-    #     'ws_params':{
-    #         'amount_lvl': 3,
-    #         'per_step':0.10,
-    #         'keep':False,
-    #         'reset_n':3
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('IMOEXF','MMZ5'),
-    #             'tfs':('M5',),
-    #             'qs': (1,1)
-    #         }
-    #     ]
-
-    # },
-    # {
-    #     'ws': LWS2_SWIMIGSON,
-    #     'ws_params':{
-    #         'amount_lvl': 3,
-    #         'per_step':0.5,
-    #         'grid_dir': 1,
-    #         'keep':False,
-    #         'reset_n':2
-    #     },
-    #     'dts': [
-    #         {
-    #             'ss':('GZZ5',),
-    #             'tfs':('M5',),
-    #             'qs': (1,)
-    #         }
-    #     ]
-
-    # },
 ]
 
 def init_trader() -> list[QuikTrader]:

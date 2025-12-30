@@ -156,8 +156,21 @@ class QuikTrader(TraderBase):
                     return True
                 last_order = get_order_by_trans_id(last_order_id)
                 if not last_order:
-                    print(datetime.now(),s, 'not see last order:', last_order_id)
-                    return False
+                    if not self.first_forgot:
+                        self.time_forgot_order = time()
+                        print(datetime.now(),s, 'not see last order:', last_order_id)
+                        self.first_forgot = True
+                        return False
+                    else:
+                        delta = time() - self.time_forgot_order
+                        if delta < 300:
+                            return False
+                        else:
+                            self.first_forgot = False
+                else:
+                    if self.first_forgot:
+                        print(datetime.now(),s, 'found last order:', last_order_id)
+                        self.first_forgot = False
         return True
 
 
@@ -236,16 +249,7 @@ class QuikTrader(TraderBase):
                 return
             else:
                 if not self._check_last_order():
-                    if not self.first_forgot:
-                        self.time_forgot_order = time()
-                        self.first_forgot = True
-                        return
-                    else:
-                        delta = time() - self.time_forgot_order
-                        if delta < 1000:
-                            return
-                        else:
-                            self.first_forgot = False
+                    return
                 dfs = self._get_dfs()
                 poss = self._check_position_on_order()
                 self.ws.preprocessing(dfs,poss)

@@ -86,6 +86,8 @@ class TestTrader(TraderBase):
             } for symbol in self.symbols
         }
         self.open_fee = {symbol:0 for symbol in self.symbols}
+        self.days = 0
+        self.cur_wday = None
 
     def read_dfs(self):
         for t in self.init_charts:
@@ -522,6 +524,10 @@ class TestTrader(TraderBase):
                 if last_row['ms'].hour >= time_close[0] and last_row['ms'].minute >= time_close[1]:
                     for s in need_pos:
                         need_pos[s] = 0
+            cur_wday = self.ws.last_dfs[tf1][self.symbols[0]].iloc[-1]['weekday']
+            if self.cur_wday != cur_wday:
+                self.days += 1
+                self.cur_wday = cur_wday
             self.work_need_pos(need_pos,last_prices,last_xs)
 
 
@@ -1022,12 +1028,19 @@ class TestTrader(TraderBase):
         else:
             sequity = np.array([])
         ax2.plot(sequity)
-            
+        sequity_col = 'step_eq_vtb' if vtb else 'step_eq_fee'
+        full_total = 0
+        total_amount = 0
+        for s in self.symbols:
+            full_total += self.trade_data[s][sequity_col][-1]
+            total_amount += self.trade_data[s]['amount']
+        
+        mean_profit = full_total/total_amount
         
         # Добавляем подписи для удобства
-        ax1.set_title(f'Chart for {symbol}')
-        ax2.set_title('Sequity')
-        ax2.set_xlabel('Time')
+        ax1.set_title(f'Chart for {symbol} days {self.days}')
+        ax2.set_title(f'Sequity {symbol}: {self.trade_data[symbol][sequity_col][-1]} | TotalSequity: {full_total}')
+        ax2.set_xlabel(f"Total_trades: {total_amount} | mean_profit_trade: {mean_profit} | mean_profit_day: {full_total/self.days}")
         
         # Автоматическая регулировка layout'а
         plt.tight_layout()

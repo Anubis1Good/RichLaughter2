@@ -10,7 +10,7 @@ class APSWS1_DYNAMO(WSBase):
             'first_long': True,
             'funding': False,
             'hour_fund':18,
-            'minute_fund':20
+            'minute_fund':24
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -51,7 +51,7 @@ class APSWS1_DYNAMO(WSBase):
         return self.need_pos
     
 # 30.12.2025 
-class APSWS2_(WSBase):
+class APSWS2_SPARTACUS(WSBase):
     """статистический арбитраж"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """
@@ -64,7 +64,7 @@ class APSWS2_(WSBase):
             'reverse_pos':False,
             'funding': 0, # 0 | 1 | -1 | 'close_all'
             'hour_fund':18,
-            'minute_fund':20,
+            'minute_fund':24,
 
         }
         """
@@ -106,6 +106,14 @@ class APSWS2_(WSBase):
                     pos_s1,pos_s2 = 0, 0
                 else:
                     pos_s1,pos_s2 = (-1, 1) if self.funding > 0 else (1,-1)
+        if abs(self.positions[s_1]) != abs(self.positions[s_2]):
+            if pos_s1 is None:
+                if abs(self.positions[s_1]) > abs(self.positions[s_2]):
+                    sing_s1 = 1 if self.positions[s_1] > 0 else -1
+                    pos_s1,pos_s2 = sing_s1, -sing_s1
+                else:
+                    sing_s2 = 1 if self.positions[s_2] > 0 else -1
+                    pos_s1,pos_s2 = sing_s2, -sing_s2
         need_pos[s_1] = pos_s1
         need_pos[s_2] = pos_s2
         # print(pos_s1,pos_s2,row['desc'])
