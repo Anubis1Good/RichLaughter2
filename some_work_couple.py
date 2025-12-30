@@ -1,9 +1,10 @@
 import os
+import pandas as pd
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
 # from wss.help_wss.OpenWS import OpenWSCondition as WSS
-from wss.LWS.LWS2a import LWS8_GRAVITON as WSS
-# from wss.APSWS.APSWS1a import APSWS1_ as WSS
+from wss.LWS.LWS2a import LWS9_ as WSS
+from wss.APSWS.APSWS1a import APSWS2_ as WSS
 
 #     {
 #     'period':50,
@@ -35,16 +36,15 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start':2500,
-            'end':2850,
-            'amount_lvl': 5,
-            'uh_lvl': 3100,
-            'dh_lvl': 2400,
-            'first_long': False,
-            'keep_hedge':True,
-            'keep_pos':False,
-            'last_point':True,
-            'keep_start_pos':True
+            'min_desc':0.1,
+            'buff_0':0.01,
+            'window':14,
+            'smooth':None,
+            'kind':'close',
+            'reverse_pos':False,
+            'funding': 0,
+            'hour_fund':18,
+            'minute_fund':20,
         }
     ),
     charts={'5min':charts},
@@ -53,11 +53,23 @@ tt1 = TestTrader(
 
 )
 
+def filter_two_df(df:pd.DataFrame,df2:pd.DataFrame):
+    df = df[df['ms'].isin(df2['ms'])].copy()
+    df2 = df2[df2['ms'].isin(df['ms'])].copy()
+    df = df.reset_index(drop=True)
+    df2 = df2.reset_index(drop=True)
+    return df,df2
+
+df = tt1.charts[tt1.timeframes[0]][symbols[0]]
+df2 = tt1.charts[tt1.timeframes[0]][symbols[1]]
+print(len(df),len(df2))
+tt1.charts[tt1.timeframes[0]][symbols[0]], tt1.charts[tt1.timeframes[0]][symbols[1]] = filter_two_df(df,df2)
+print(len(tt1.charts[tt1.timeframes[0]][symbols[0]]),len(tt1.charts[tt1.timeframes[0]][symbols[1]]))
 tt1.reload_data()
-tt1.trade_data['IMOEXF']['pos'] = -5
-tt1.trade_data['IMOEXF']['mp'] = 2400
-tt1.trade_data['MMZ5']['pos'] = 5
-tt1.trade_data['MMZ5']['mp'] = 2450
+# tt1.trade_data['IMOEXF']['pos'] = -5
+# tt1.trade_data['IMOEXF']['mp'] = 2400
+# tt1.trade_data['MMZ5']['pos'] = 5
+# tt1.trade_data['MMZ5']['mp'] = 2450
 tt1.check_window_fast()
 # # Печать статистики
 tt1.print_statistics(symbols[0])
