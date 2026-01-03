@@ -252,7 +252,11 @@ class QuikTrader(TraderBase):
                     return
                 dfs = self._get_dfs()
                 poss = self._check_position_on_order()
-                self.ws.preprocessing(dfs,poss)
+                poss_ws = {s:{
+                    'pos':poss[s]['pos']/self.quantity_map[s],
+                    'mp':poss[s]['mp']
+                } for s in poss} #03.01.2026 mb problem non test
+                self.ws.preprocessing(dfs,poss_ws)
                 need_pos = self.ws()
                 if time_mode == -1 and self.close_on_time: #close_all
                     need_pos = {s: 0 for s in self.symbols}

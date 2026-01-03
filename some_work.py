@@ -1,14 +1,14 @@
 import os
 import matplotlib.pyplot as plt
 from traders.TestTrader.TestTrader import TestTrader
-from wss.help_wss.OpenWS import OpenWSCondition as WSS
+# from wss.help_wss.OpenWS import OpenWSCondition as WSS
 # from wss.LWS.LWS1 import LWS2_SWIMGRID as WSS
 # from wss.LWS.LWS1 import LWS2_PSG as WSS
 # from wss.LWS.LWS1 import LWS2_PSGSON as WSS
 # from wss.PSWS.PSWS1 import PSWS1_ as WSS
 # from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
 # from wss.PWS.PWS1 import PWS2_DIRATR as WSS
-# from wss.SCAWS.SCAWS1 import SCAWS2_SHARKNADO as WSS
+from wss.SCAWS.SCAWS1 import SCAWS2_SHARKNADO as WSS
 #     {
 #     'period':50,
 #     'amount_lvl': 2,
@@ -39,10 +39,10 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'need_pos_up':0,
-            'need_pos_down':1,
-            'condition_up': 2700,
-            'condition_down': 2500
+            'period_sma':147,
+            'grid_dir':0,
+            'amount_lvl': 5,
+            'percent_step': 0.1 #%
         }
     ),
     charts={'5min':charts},

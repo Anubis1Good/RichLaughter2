@@ -1,6 +1,5 @@
-from wss.LWS.LWS2 import LWS5_XPG,LWS5_EUCLID,LWS5_MERCATUS
 from wss.LWS.LWS2a import LWS8_SINGULARITY
-from wss.APSWS.APSWS1a import APSWS1_DYNAMO
+from wss.APSWS.APSWS1a import APSWS1_DYNAMO,APSWS2_SPARTACUS
 
 from traders.QuikTrader.QuikTrader import QuikTrader
 
@@ -8,16 +7,17 @@ bot_on_ticker = [
     {
         'ws': LWS8_SINGULARITY,
         'ws_params':{
-            'start':10.980,
-            'end':11.140,
+            'start':11.08,
+            'end':11.26,
             'amount_lvl': 4,
-            'uh_lvl': 11.200,
-            'dh_lvl': 10.900,
+            'uh_lvl': 11.310,
+            'dh_lvl': 11.030,
             'first_long': False,
             'keep_hedge':True,
             'keep_pos':False,
             'last_point':True,
-            'keep_start_pos':False
+            'keep_start_long':True,
+            'keep_start_short':True
         },
         'dts': [
             {
@@ -46,12 +46,17 @@ bot_on_ticker = [
 
     },
     {
-        'ws': APSWS1_DYNAMO,
+        'ws': APSWS2_SPARTACUS,
         'ws_params':{
-            'first_long': True,
-            'funding': True,
+            'min_desc':0.1,
+            'buff_0':0.01,
+            'window':145,
+            'smooth':None,
+            'kind':'close',
+            'reverse_pos':False,
+            'funding': 1,
             'hour_fund':18,
-            'minute_fund':24
+            'minute_fund':24,
         },
         'dts': [
             {

@@ -39,7 +39,7 @@ class SCAWS1_mini(WSBase):
     #         return 'short_pw'
 
 class SCAWS2_SHARKNADO(WSBase):
-    """стратегия типа STA_mini для RL2"""
+    """стратегия типа ST5 для RL2"""
     def __init__(self, symbols, timeframes, positions, middle_price, parameters):
         """
         parameters = {

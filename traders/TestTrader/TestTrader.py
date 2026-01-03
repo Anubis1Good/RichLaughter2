@@ -88,6 +88,7 @@ class TestTrader(TraderBase):
         self.open_fee = {symbol:0 for symbol in self.symbols}
         self.days = 0
         self.cur_wday = None
+        self.max_poss = {s:0 for s in self.symbols}
 
     def read_dfs(self):
         for t in self.init_charts:
@@ -99,6 +100,12 @@ class TestTrader(TraderBase):
                     df = pd.read_csv(path_df)
                 self.charts[t][s] = df
     
+    def update_max_poss(self,need_pos):
+        for s in need_pos:
+            if not need_pos[s] is None:
+                if self.max_poss[s] < abs(need_pos[s]):
+                    self.max_poss[s] = abs(need_pos[s])
+
     def get_total_time_range(self):
         tf1 = self.timeframes[0]
         start_time = None
@@ -161,6 +168,7 @@ class TestTrader(TraderBase):
     def work_need_pos(self, need_pos, last_prices, last_xs):
         for s in self.symbols:
             if need_pos[s] is not None: #новая позиция не None
+                need_pos[s] *= self.quantity_map[s]
                 if need_pos[s] != self.trade_data[s]['pos']: #новая позиция не равна старой
                     self._process_position_change(s, need_pos[s], last_prices[s], last_xs[s])
                     self.trade_data[s]['step_eq_vtb'].append(self.vtb_fee_funcs[s](self.trade_data[s]['equity'][-1],self.trade_data[s]['amount']))
@@ -396,6 +404,7 @@ class TestTrader(TraderBase):
         self.trade_data[symbol]['fees'] += cur_feei
 
     # ==========================================================================
+    '''
 
     @duration_time
     def check_fast_old(self):
@@ -472,7 +481,7 @@ class TestTrader(TraderBase):
                 for k in ('total','count','amount','total_wfees_per','pos','mp','fees'):
                     content += k + ': ' + str(data[k]) + ' '
                 f.write(content)
-
+    '''
     @duration_time
     def check_window_fast(self, window_size=150):
         tf1 = self.timeframes[0]
@@ -513,9 +522,13 @@ class TestTrader(TraderBase):
                         cache[cache_key] = filtered_df
                     
                     temp_dfs[tf][s] = filtered_df
-            
-            self.ws.preprocessing(temp_dfs, poss)
+            poss_ws = {s:{
+                'pos':poss[s]['pos']/self.quantity_map[s],
+                'mp':poss[s]['mp']
+            } for s in poss}
+            self.ws.preprocessing(temp_dfs, poss_ws)
             need_pos = self.ws()
+            self.update_max_poss(need_pos)
             last_prices = {s: self.ws.last_dfs[tf1][s].iloc[-1]['close'] for s in self.symbols}
             last_xs = {s: self.ws.last_dfs[tf1][s].iloc[-1]['x'] for s in self.symbols}
             if self.close_on_time:
@@ -531,7 +544,7 @@ class TestTrader(TraderBase):
             self.work_need_pos(need_pos,last_prices,last_xs)
 
 
-
+    '''
     @duration_time
     def check_window_old(self,window_size=150):
         tf1 = self.timeframes[0]
@@ -924,7 +937,7 @@ class TestTrader(TraderBase):
             return target_dtype.type(value)
         except:
             return value
-        
+    '''    
     def print_statistics(self, symbol):
         """Печать статистики по торгам"""
         if symbol not in self.symbols:
@@ -1034,13 +1047,16 @@ class TestTrader(TraderBase):
         for s in self.symbols:
             full_total += self.trade_data[s][sequity_col][-1]
             total_amount += self.trade_data[s]['amount']
-        
-        mean_profit = full_total/total_amount
-        
+        full_total = round(full_total,4)
+        mean_profit = round(full_total/total_amount,4)
+        total_max_pos = 0
+        for s in self.max_poss:
+            total_max_pos += self.max_poss[s]
         # Добавляем подписи для удобства
+        mpd = round(full_total/self.days,4)
         ax1.set_title(f'Chart for {symbol} days {self.days}')
-        ax2.set_title(f'Sequity {symbol}: {self.trade_data[symbol][sequity_col][-1]} | TotalSequity: {full_total}')
-        ax2.set_xlabel(f"Total_trades: {total_amount} | mean_profit_trade: {mean_profit} | mean_profit_day: {full_total/self.days}")
+        ax2.set_title(f'Sequity {symbol}: {round(self.trade_data[symbol][sequity_col][-1],4)} | TotalSequity: {full_total} | Total/tmp: {round(full_total/total_max_pos,4)} | tmp: {total_max_pos}')
+        ax2.set_xlabel(f"Total_trades: {total_amount} | mean_profit_trade: {mean_profit} | mean_profit_day: {mpd} | mpd/tmp: {round(mpd/total_max_pos,4)}")
         
         # Автоматическая регулировка layout'а
         plt.tight_layout()
