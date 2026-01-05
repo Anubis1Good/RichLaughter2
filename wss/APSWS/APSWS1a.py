@@ -84,22 +84,23 @@ class APSWS2_SPARTACUS(WSBase):
         s_1,s_2 = self.symbols[0],self.symbols[1]
         need_pos = {}
         pos_s1,pos_s2 = None,None
-        if row['desc'] > self.min_desc:
-            pos_s1,pos_s2 = -1,1
-            self.enter_desc = 1
-        elif row['desc'] < -self.min_desc:
-            pos_s1,pos_s2 = 1,-1
-            self.enter_desc = -1
-        elif self.reverse_pos:
-            pos_s1,pos_s2 = None,None
-        elif self.enter_desc > 0:
-            if row['desc'] < self.buff_0:
-                pos_s1,pos_s2 = 0,0
-                self.enter_desc = 0
-        elif self.enter_desc < 0:
-            if row['desc'] > -self.buff_0:
-                pos_s1,pos_s2 = 0,0
-                self.enter_desc = 0
+        if pd.notna(row['desc']):
+            if row['desc'] > self.min_desc:
+                pos_s1,pos_s2 = -1,1
+                self.enter_desc = 1
+            elif row['desc'] < -self.min_desc:
+                pos_s1,pos_s2 = 1,-1
+                self.enter_desc = -1
+            elif self.reverse_pos:
+                pos_s1,pos_s2 = None,None
+            elif self.enter_desc > 0:
+                if row['desc'] < self.buff_0:
+                    pos_s1,pos_s2 = 0,0
+                    self.enter_desc = 0
+            elif self.enter_desc < 0:
+                if row['desc'] > -self.buff_0:
+                    pos_s1,pos_s2 = 0,0
+                    self.enter_desc = 0
         if row['weekday'] < 5 and self.funding:
             if row['hour'] == self.hour_fund and row['minute'] > self.minute_fund:
                 if self.funding == 'close_all':
@@ -137,8 +138,8 @@ class APSWS2_SPARTACUS(WSBase):
         tf1 = self.timeframes[0]
         s1 = self.symbols[0]
         row = self.last_dfs[tf1][s1].iloc[-1]
+        # print(row)
         self.need_pos = self.get_need_pos(row)
-
         return self.need_pos
 
 # 03.01.2026 

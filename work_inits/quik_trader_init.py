@@ -7,11 +7,11 @@ bot_on_ticker = [
     {
         'ws': LWS8_SINGULARITY,
         'ws_params':{
-            'start':11.08,
-            'end':11.26,
+            'start':11.268,
+            'end':11.584,
             'amount_lvl': 4,
-            'uh_lvl': 11.310,
-            'dh_lvl': 11.030,
+            'uh_lvl': 11.610,
+            'dh_lvl': 11.230,
             'first_long': False,
             'keep_hedge':True,
             'keep_pos':False,
@@ -32,7 +32,7 @@ bot_on_ticker = [
         'ws': APSWS1_DYNAMO,
         'ws_params':{
             'first_long': True,
-            'funding': True,
+            'funding': False,
             'hour_fund':18,
             'minute_fund':24
         },
@@ -46,17 +46,12 @@ bot_on_ticker = [
 
     },
     {
-        'ws': APSWS2_SPARTACUS,
+        'ws': APSWS1_DYNAMO,
         'ws_params':{
-            'min_desc':0.1,
-            'buff_0':0.01,
-            'window':145,
-            'smooth':None,
-            'kind':'close',
-            'reverse_pos':False,
-            'funding': 1,
+            'first_long': True,
+            'funding': True,
             'hour_fund':18,
-            'minute_fund':24,
+            'minute_fund':24
         },
         'dts': [
             {
@@ -68,29 +63,19 @@ bot_on_ticker = [
 
     },
     {
-        'ws': APSWS1_DYNAMO,
+        'ws': LWS8_SINGULARITY,
         'ws_params':{
-            'first_long': True,
-            'funding': True,
-            'hour_fund':18,
-            'minute_fund':24
-        },
-        'dts': [
-            {
-                'ss':('SBERF','SRH6',),
-                'tfs':('M5',),
-                'qs': (1,1,)
-            }
-        ]
-
-    },
-    {
-        'ws': APSWS1_DYNAMO,
-        'ws_params':{
-            'first_long': True,
-            'funding': True,
-            'hour_fund':18,
-            'minute_fund':24
+            'start':121,
+            'end':129,
+            'amount_lvl': 4,
+            'uh_lvl': 130,
+            'dh_lvl': 120,
+            'first_long': False,
+            'keep_hedge':True,
+            'keep_pos':False,
+            'last_point':True,
+            'keep_start_long':False,
+            'keep_start_short':False
         },
         'dts': [
             {
@@ -101,6 +86,23 @@ bot_on_ticker = [
         ]
 
     },
+    # {
+    #     'ws': APSWS1_DYNAMO,
+    #     'ws_params':{
+    #         'first_long': True,
+    #         'funding': True,
+    #         'hour_fund':18,
+    #         'minute_fund':24
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('SBERF','SRH6',),
+    #             'tfs':('M5',),
+    #             'qs': (1,1,)
+    #         }
+    #     ]
+
+    # },
 
 ]
 

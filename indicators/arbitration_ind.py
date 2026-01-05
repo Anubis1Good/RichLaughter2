@@ -4,7 +4,7 @@ import pandas as pd
 def get_percent_diff_window(df:pd.DataFrame,df2:pd.DataFrame,window:int,smooth:int|None=None,kind='close'):
     """"""
     if df['ms'].iloc[-1] != df2['ms'].iloc[-1]:
-        print(df['ms'].iloc[-1],df2['ms'].iloc[-1])
+        # print(df['ms'].iloc[-1],df2['ms'].iloc[-1])
         return None
     df = df.copy()
     df2 = df2.copy()
@@ -15,5 +15,6 @@ def get_percent_diff_window(df:pd.DataFrame,df2:pd.DataFrame,window:int,smooth:i
     disc = df['diff']- df2['diff']
     if smooth:
         disc = disc.rolling(smooth).mean()
+    disc = disc.ffill()
     disc = disc.fillna(0)
     return disc

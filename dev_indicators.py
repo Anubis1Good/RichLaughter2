@@ -9,6 +9,8 @@ from indicators.arbitration_ind import *
 
 raw_file = 'data_for_tests\data_from_moex5\_5IMOEXF_1_1763893692.parquet'
 raw_file2 = 'data_for_tests\data_from_moex5\_5MMZ5_1_1763893699.parquet'
+raw_file = 'data_for_tests\data_from_moex5\_5GLDRUBF_1_1767639808.parquet'
+raw_file2 = 'data_for_tests\data_from_moex5\_5GLH6_1_1767639810.parquet'
 
 df = pd.read_parquet(raw_file)
 df2 = pd.read_parquet(raw_file2)

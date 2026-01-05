@@ -2,10 +2,11 @@ from loaders.api_moex_loader.api_moex_loader import ApiMoexLoader
 from datetime import date,timedelta
 
 today = date.today()
-start_date = str(today - timedelta(days=60))
+start_date = str(today - timedelta(days=30))
 # # start_date = '2025-02-01'
 
 tickers = ('IMOEXF','MMZ5','RMZ5','SRZ5','GAZPF','SBERF','CRZ5','CNYRUBF','SVZ5','GZZ5',)
+tickers = ('GLDRUBF','GLH6')
 
 for ticker in tickers:
     loader = ApiMoexLoader(ticker,'RFUD','forts','futures')
