@@ -28,6 +28,37 @@ def add_extremes_fractals(df:pd.DataFrame, period=5):
     df['ext_down'] = df['ext_down'].ffill()
     return df
 
+def add_plus_delta_fc(df:pd.DataFrame, period=1):
+    """add 'pdf_up', 'pdf_down'
+    \n plus delta fractal channel
+    """
+    up_points = df[df['fractal_up']].copy()
+    up_points['delta_high'] = up_points['high'].diff()
+    up_points['dhm'] = up_points['delta_high'].rolling(period).mean()
+    df['pdf_up'] = up_points['high'] + up_points['dhm']
+    df['pdf_up'] = df['pdf_up'].ffill()
+    down_points = df[df['fractal_down']].copy()
+    down_points['delta_low'] = down_points['low'].diff()
+    down_points['dlm'] = down_points['delta_low'].rolling(period).mean()
+    df['pdf_down'] = down_points['low'] + down_points['dlm']
+    df['pdf_down'] = df['pdf_down'].ffill()
+    return df
+
+def add_exp_pdfc(df:pd.DataFrame, period=1):
+    """add 'pdf_up', 'pdf_down'
+    \n exponential plus delta fractal channel
+    """
+    up_points = df[df['fractal_up']].copy()
+    up_points['delta_high'] = up_points['high'].diff()
+    up_points['dhm'] = up_points['delta_high'].ewm(period).mean()
+    df['pdf_up'] = up_points['high'] + up_points['dhm']
+    df['pdf_up'] = df['pdf_up'].ffill()
+    down_points = df[df['fractal_down']].copy()
+    down_points['delta_low'] = down_points['low'].diff()
+    down_points['dlm'] = down_points['delta_low'].ewm(period).mean()
+    df['pdf_down'] = down_points['low'] + down_points['dlm']
+    df['pdf_down'] = df['pdf_down'].ffill()
+    return df
 #TAKE THIS
 def add_kvas_channel(df:pd.DataFrame,period=20):
     """add 'top_kvas','low_kvas'"""

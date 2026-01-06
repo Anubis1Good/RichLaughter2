@@ -2,16 +2,16 @@ from time import sleep
 from wss.help_wss.OpenWS import OpenWSCondition
 from traders.QuikTrader.QuikTrader import QuikTrader
 confs = [
-    # {
-    #     'symbols':['CNYRUBF',],
-    #     'quntities':[1,],
-    #     'params':{
-    #         'need_pos_up':None,
-    #         'need_pos_down':0,
-    #         'condition_up': None,
-    #         'condition_down': 10.970
-    #     }
-    # },
+    {
+        'symbols':['CNYRUBF',],
+        'quntities':[1,],
+        'params':{
+            'need_pos_up':-4,
+            'need_pos_down':None,
+            'condition_up': 11.350,
+            'condition_down': None
+        }
+    },
     # {
     #     'symbols':['CRH6',],
     #     'quntities':[1,],
@@ -26,20 +26,20 @@ confs = [
     #     'symbols':['IMOEXF',],
     #     'quntities':[1,],
     #     'params':{
-    #         'need_pos_up':None,
-    #         'need_pos_down':0,
-    #         'condition_up': None,
-    #         'condition_down': 2751
+    #         'need_pos_up':-1,
+    #         'need_pos_down':None,
+    #         'condition_up': 2753,
+    #         'condition_down': None
     #     }
     # },
     # {
     #     'symbols':['MMH6',],
     #     'quntities':[1,],
     #     'params':{
-    #         'need_pos_up':None,
-    #         'need_pos_down':None,
-    #         'condition_up': None,
-    #         'condition_down': None
+    #         'need_pos_up':0,
+    #         'need_pos_down':2,
+    #         'condition_up': 2812,
+    #         'condition_down': 2787
     #     }
     # },
     # {

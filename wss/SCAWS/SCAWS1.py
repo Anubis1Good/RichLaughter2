@@ -1,6 +1,7 @@
 import pandas as pd
 from wss.WSBase import WSBase
 from indicators.classic_ind import add_bollinger,add_rsi
+from indicators.rare_ind import add_big_volume,add_over_bb
 
 class SCAWS1_mini(WSBase):
     """стратегия типа STA_mini для RL2"""
@@ -9,34 +10,57 @@ class SCAWS1_mini(WSBase):
         parameters = {
             'period_bb':50,
             'period_rsi':14,
+            'period_bv':14,
+            'period_dsma':14,
+            'mult_bv':3,
             'long_dir':True,
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
+        self.period_bb = parameters['period_bb']
+        self.period_rsi = parameters['period_rsi']
+        self.period_bv = parameters['period_bv']
+        self.period_dsma = parameters['period_dsma']
+        self.mult_bv = parameters['mult_bv']
+        self.long_dir = parameters['long_dir']
 
-    # def preprocessing(self, df):
-    #     df = add_bollinger(df,self.period)
-    #     # df = add_big_volume(df,self.period,3)
-    #     # df = add_over_bb(df)
-    #     df = add_rsi(df,self.period)
-    #     df['sma_delta'] = df['sma'].pct_change()
-    #     df['dynamic_sma'] = df['sma_delta'].rolling(self.period).mean()
-    #     return df
-    # def __call__(self, row, *args, **kwds):
-    #     if self.go_long and row['dynamic_sma'] < -0.00001:
-    #         return 'close_long_pw'
-    #     if not self.go_long and row['dynamic_sma'] > 0.00001:
-    #         return 'close_short_pw'
-    #     if row['high'] > row['bbu']:
-    #         if row['is_big'] or row['over_bbu'] or row['rsi'] > 85:
-    #             return 'close_long_pw'
-    #     if row['low'] < row['bbd']:
-    #         if row['is_big'] or row['over_bbd'] or row['rsi'] < 15:
-    #             return 'close_short_pw'
-    #     if row['low'] < row['sma'] and self.go_long and row['dynamic_sma'] > 0:
-    #         return 'long_pw'
-    #     if row['high'] > row['sma']and not self.go_long and row['dynamic_sma'] < 0:
-    #         return 'short_pw'
+    def preprocessing(self,  dfs, poss):
+        self.update_poss_mps(poss)
+        tf1 = self.timeframes[0]
+        self.last_dfs = {tf1:{}}
+        for s in dfs[tf1]:
+            df = dfs[tf1][s].copy()
+            df = add_bollinger(df,self.period_bb)
+            df = add_big_volume(df,self.period_bv,self.mult_bv)
+            df = add_over_bb(df)
+            df = add_rsi(df,self.period_rsi)
+            df['sma_delta'] = df['sma'].pct_change()
+            df['dynamic_sma'] = df['sma_delta'].rolling(self.period_dsma).mean()
+            self.last_dfs[tf1][s] = df
+        return self.last_dfs
+    
+    def __call__(self, *args, **kwds):
+        tf1 = self.timeframes[0]
+        self.need_pos = {s:None for s in self.symbols}
+        for s in self.symbols:
+            row = self.last_dfs[tf1][s].iloc[-1]
+            if self.long_dir:
+                if row['dynamic_sma'] < -0.00001:
+                    self.need_pos[s] = 0
+                if row['high'] > row['bbu']:
+                    if row['is_big'] or row['over_bbu'] or row['rsi'] > 85:
+                        self.need_pos[s] = 0
+                if row['low'] < row['sma'] and row['dynamic_sma'] > 0:
+                    self.need_pos[s] = 1
+            else:
+                if row['dynamic_sma'] > 0.00001:
+                    self.need_pos[s] = 0
+                if row['low'] < row['bbd']:
+                    if row['is_big'] or row['over_bbd'] or row['rsi'] < 15:
+                        self.need_pos[s] = 0
+                    if row['high'] > row['sma'] and row['dynamic_sma'] < 0:
+                        self.need_pos[s] = -1
+        return self.need_pos
 
 class SCAWS2_SHARKNADO(WSBase):
     """стратегия типа ST5 для RL2"""

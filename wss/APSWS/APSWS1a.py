@@ -8,13 +8,13 @@ class APSWS1_DYNAMO(WSBase):
         """
         parameters = {
             'first_long': True,
-            'funding': False,
+            'funding': 0, # 0 | 1 | -1 | 'close_all'
             'hour_fund':18,
             'minute_fund':24
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
-        self.first_long = parameters.get('first_long',False)
+        self.first_long = parameters.get('first_long',0)
         self.funding = parameters.get('funding',False)
         self.hour_fund = parameters.get('hour_fund',18)
         self.minute_fund = parameters.get('minute_fund',20)
@@ -22,11 +22,15 @@ class APSWS1_DYNAMO(WSBase):
     def get_need_pos(self,row):
         s_l,s_s = (self.symbols[0],self.symbols[1]) if self.first_long else (self.symbols[1],self.symbols[0])
         need_pos = {}
+        pos_s1,pos_s2 = 1, -1
         if row['weekday'] < 5 and self.funding:
             if row['hour'] == self.hour_fund and row['minute'] > self.minute_fund:
-                s_l,s_s = s_s,s_l
-        need_pos[s_l] = 1
-        need_pos[s_s] = -1
+                if self.funding == 'close_all':
+                    pos_s1,pos_s2 = 0, 0
+                else:
+                    pos_s1,pos_s2 = (-1, 1) if self.funding > 0 else (1,-1)
+        need_pos[s_l] = pos_s1
+        need_pos[s_s] = pos_s2
         return need_pos
     
     def preprocessing(self, dfs, poss):

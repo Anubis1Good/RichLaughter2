@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from utils.help_test import filter_two_df_by_ms
 from traders.TestTrader.TestTrader import TestTrader
 # from wss.help_wss.OpenWS import OpenWSCondition as WSS
-from wss.LWS.LWS2a import LWS8_LITE as WSS
-# from wss.APSWS.APSWS1a import APSWS2_SPARTACUS as WSS
+# from wss.LWS.LWS2a import LWS8_SINGULARITY as WSS
+from wss.APSWS.APSWS1a import APSWS1_DYNAMO as WSS
 
 #     {
 #     'period':50,
@@ -25,7 +25,7 @@ charts_list = os.listdir(folder_charts)
 symbols = ('IMOEXF','MMZ5')
 quantities = [1 for s in symbols]
 # symbols = ('CNYRUBF','CRZ5')
-# symbols = ('GLDRUBF','GLH6')
+symbols = ('GLDRUBF','GLH6')
 
 charts = {s: None for s in symbols}
 for chart in charts_list:
@@ -39,16 +39,10 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'start_lvl':2550,
-            'end_lvl':2700,
-            'uh_lvl': 2860,
-            'dh_lvl': 2500,
-            'first_long': False,
-            'keep_hedge':True,
-            'last_point':True,
-            'keep_start_long':False,
-            'keep_start_short':False,
-            'close_hedge':True
+            'first_long': True,
+            'funding': 'close_all', # 0 | 1 | -1 | 'close_all'
+            'hour_fund':18,
+            'minute_fund':24
         }
     ),
     charts={'5min':charts},

@@ -16,7 +16,8 @@ class LWS8_SINGULARITY(WSBase):
             'keep_pos':False,
             'last_point':True,
             'keep_start_long':False,
-            'keep_start_short':False
+            'keep_start_short':False,
+            'unfreeze':False,
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -34,6 +35,9 @@ class LWS8_SINGULARITY(WSBase):
         self.keep_pos = parameters.get('keep_pos',False)
         self.keep_start_long = parameters.get('keep_start_long',False)
         self.keep_start_short = parameters.get('keep_start_short',False)
+        self.unfreeze = parameters.get('unfreeze',False)
+        self.lock_long = False
+        self.lock_short = False
         self.in_work = True
         self.not_work_pos = {}
         s_l,s_s = (self.symbols[0],self.symbols[1]) if self.first_long else (self.symbols[1],self.symbols[0])
@@ -59,13 +63,21 @@ class LWS8_SINGULARITY(WSBase):
                     new_pos_short = None
         if self.keep_start_long:
             if new_pos_long == 0:
-                self.keep_start_long = False
+                self.lock_short = False
+                if self.lock_long:
+                    new_pos_long,new_pos_short = self.hedge_pos,-self.hedge_pos
+                else:
+                    self.keep_start_long = False
             else:
                 if new_pos_long < cur_pos_l:
                     new_pos_long = None
         if self.keep_start_short:
             if new_pos_short == 0:
-                self.keep_start_short = False
+                self.lock_long = False
+                if self.lock_short:
+                    new_pos_long,new_pos_short = self.hedge_pos,-self.hedge_pos
+                else:
+                    self.keep_start_short = False
             else:
                 if new_pos_short > cur_pos_s:
                     new_pos_short = None
@@ -77,10 +89,20 @@ class LWS8_SINGULARITY(WSBase):
         if self.dh_lvl:
             if row['close'] < self.dh_lvl:
                 self.in_work = False if self.keep_hedge else True
+                if self.unfreeze:
+                    self.lock_short = True
+                    self.keep_start_short = True
+                    self.keep_start_long = True
+                    self.in_work = True
                 return (self.hedge_pos,-self.hedge_pos,self.max_pos,-self.max_pos)
         if self.uh_lvl:
             if row['close'] > self.uh_lvl:
                 self.in_work = False if self.keep_hedge else True
+                if self.unfreeze:
+                    self.lock_long = True
+                    self.keep_start_long = True
+                    self.keep_start_short = True
+                    self.in_work = True
                 return (self.hedge_pos,-self.hedge_pos,self.max_pos,-self.max_pos)
         new_pos_long,new_pos_short = None,None
         max_pos_long,max_pos_short = 0,0
@@ -247,7 +269,8 @@ class LWS8_LITE(WSBase):
             'last_point':True,
             'keep_start_long':False,
             'keep_start_short':False,
-            'close_hedge':False
+            'close_hedge':False,
+            'unfreeze':False,
         }
         """
         super().__init__(symbols, timeframes, positions, middle_price, parameters)
@@ -263,6 +286,9 @@ class LWS8_LITE(WSBase):
         self.keep_hedge = parameters['keep_hedge']
         self.keep_start_long = parameters.get('keep_start_long',False)
         self.keep_start_short = parameters.get('keep_start_short',False)
+        self.unfreeze = parameters.get('unfreeze',False)
+        self.lock_long = False
+        self.lock_short = False
         self.in_work = True
         self.not_work_pos = {}
         s_l,s_s = (self.symbols[0],self.symbols[1]) if self.first_long else (self.symbols[1],self.symbols[0])
@@ -283,6 +309,12 @@ class LWS8_LITE(WSBase):
                 self.keep_start_short = False
             else:
                 new_pos_short = None
+        if new_pos_long:
+            if new_pos_long < self.positions[s_l]:
+                new_pos_long = self.positions[s_l]
+        if new_pos_short:
+            if new_pos_short > self.positions[s_s]:
+                new_pos_short = self.positions[s_s]
         need_pos[s_l] = new_pos_long
         need_pos[s_s] = new_pos_short
         return need_pos
@@ -291,14 +323,26 @@ class LWS8_LITE(WSBase):
         if self.dh_lvl:
             if row['close'] < self.dh_lvl:
                 self.in_work = False if self.keep_hedge else True
+                if self.unfreeze:
+                    self.lock_short = True
+                    self.in_work = True
                 return (self.hedge_pos,-self.hedge_pos)
         if self.uh_lvl:
             if row['close'] > self.uh_lvl:
                 self.in_work = False if self.keep_hedge else True
+                if self.unfreeze:
+                    self.lock_long = True
+                    self.in_work = True
                 return (self.hedge_pos,-self.hedge_pos)
-        if row['close'] <= self.start_lvl:
-            return 1,0
-        elif row['close'] >= self.end_lvl:
+        if row['close'] <= self.start_lvl: #long
+            self.lock_long = False
+            if self.lock_short:
+                return (self.hedge_pos,-self.hedge_pos)
+            return 1,0 
+        elif row['close'] >= self.end_lvl: #short
+            self.lock_short = False
+            if self.lock_long:
+                return (self.hedge_pos,-self.hedge_pos)
             return 0,-1
         return None,None
     

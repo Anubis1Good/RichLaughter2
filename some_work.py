@@ -8,7 +8,7 @@ from traders.TestTrader.TestTrader import TestTrader
 # from wss.PSWS.PSWS1 import PSWS1_ as WSS
 # from wss.LWS.LWS2 import LWS5_MERCATUS as WSS
 # from wss.PWS.PWS1 import PWS2_DIRATR as WSS
-from wss.SCAWS.SCAWS1 import SCAWS2_SHARKNADO as WSS
+from wss.SCAWS.SCAWS1 import SCAWS1_mini as WSS
 #     {
 #     'period':50,
 #     'amount_lvl': 2,
@@ -39,10 +39,12 @@ tt1 = TestTrader(
     (
         WSS,    
         {
-            'period_sma':147,
-            'grid_dir':0,
-            'amount_lvl': 5,
-            'percent_step': 0.1 #%
+            'period_bb':50,
+            'period_rsi':14,
+            'period_bv':14,
+            'period_dsma':14,
+            'mult_bv':3,
+            'long_dir':False,
         }
     ),
     charts={'5min':charts},
