@@ -28,30 +28,30 @@ bot_on_ticker = [
     #     ]
 
     # },
-    {
-        'ws': LWS8_LITE,
-        'ws_params':{
-            'start_lvl':11355,
-            'end_lvl':11400,
-            'uh_lvl': 11415,
-            'dh_lvl': 11340,
-            'first_long': False,
-            'keep_hedge':True,
-            'last_point':False,
-            'keep_start_long':False,
-            'keep_start_short':False,
-            'close_hedge':False,
-            'unfreeze':True,
-        },
-        'dts': [
-            {
-                'ss':('GLDRUBF','GLH6',),
-                'tfs':('M5',),
-                'qs': (1,1,)
-            }
-        ]
+    # {
+    #     'ws': LWS8_LITE,
+    #     'ws_params':{
+    #         'start_lvl':11355,
+    #         'end_lvl':11400,
+    #         'uh_lvl': 11415,
+    #         'dh_lvl': 11340,
+    #         'first_long': False,
+    #         'keep_hedge':True,
+    #         'last_point':False,
+    #         'keep_start_long':False,
+    #         'keep_start_short':False,
+    #         'close_hedge':False,
+    #         'unfreeze':True,
+    #     },
+    #     'dts': [
+    #         {
+    #             'ss':('GLDRUBF','GLH6',),
+    #             'tfs':('M5',),
+    #             'qs': (1,1,)
+    #         }
+    #     ]
 
-    },
+    # },
     # {
     #     'ws': LWS8_LITE,
     #     'ws_params':{

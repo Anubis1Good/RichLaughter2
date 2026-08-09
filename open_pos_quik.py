@@ -5,32 +5,32 @@ confs = [
     # {
     #     'symbols':['CNYRUBF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-4}
+    #     'params':{'need_pos':0}
     # },
     # {
     #     'symbols':['CRH6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':3}
+    #     'params':{'need_pos':4}
     # },
     # {
     #     'symbols':['IMOEXF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':2}
+    #     'params':{'need_pos':-1}
     # },
     # {
     #     'symbols':['MMH6',],
-    #     'quntities':[1,],
-    #     'params':{'need_pos':-2}
+    #     'quntities':[1,],   
+    #     'params':{'need_pos':1}
     # },
     # {
     #     'symbols':['GAZPF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':1}
+    #     'params':{'need_pos':-1}
     # },
     # {
     #     'symbols':['GZH6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':0}
+    #     'params':{'need_pos':1}
     # },
     # {
     #     'symbols':['SBERF',],
@@ -45,17 +45,17 @@ confs = [
     # {
     #     'symbols':['RMH6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':0}
+    #     'params':{'need_pos':-1}
     # },
     # {
     #     'symbols':['GLDRUBF',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':-2}
+    #     'params':{'need_pos':0}
     # },
     # {
     #     'symbols':['GLH6',],
     #     'quntities':[1,],
-    #     'params':{'need_pos':2}
+    #     'params':{'need_pos':1}
     # },
     # {
     #     'symbols':['BRG6',],
@@ -66,6 +66,21 @@ confs = [
     #     'symbols':['BRH6',],
     #     'quntities':[1,],
     #     'params':{'need_pos':0}
+    # },
+    # {
+    #     'symbols':['NGF6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':0}
+    # },
+    # {
+    #     'symbols':['CCH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':1}
+    # },
+    # {
+    #     'symbols':['OJH6',],
+    #     'quntities':[1,],
+    #     'params':{'need_pos':-1}
     # },
 ]
 bots = []

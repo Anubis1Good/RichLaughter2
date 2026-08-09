@@ -2,23 +2,23 @@ from time import sleep
 from wss.help_wss.OpenWS import OpenWSCondition
 from traders.QuikTrader.QuikTrader import QuikTrader
 confs = [
-    {
-        'symbols':['CNYRUBF',],
-        'quntities':[1,],
-        'params':{
-            'need_pos_up':-4,
-            'need_pos_down':None,
-            'condition_up': 11.350,
-            'condition_down': None
-        }
-    },
+    # {
+    #     'symbols':['CNYRUBF',],
+    #     'quntities':[1,],
+    #     'params':{
+    #         'need_pos_up':-4,
+    #         'need_pos_down':None,
+    #         'condition_up': 11.375,
+    #         'condition_down': None
+    #     }
+    # },
     # {
     #     'symbols':['CRH6',],
     #     'quntities':[1,],
     #     'params':{
-    #         'need_pos_up':None,
+    #         'need_pos_up':4,
     #         'need_pos_down':None,
-    #         'condition_up': None,
+    #         'condition_up': 11.550,
     #         'condition_down': None
     #     }
     # },
